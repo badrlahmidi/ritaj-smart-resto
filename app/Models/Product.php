@@ -16,11 +16,17 @@ class Product extends Model
         'price',
         'image_url',
         'is_available',
+        'stock_quantity',
+        'track_stock',
+        'alert_threshold',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
         'is_available' => 'boolean',
+        'track_stock' => 'boolean',
+        'stock_quantity' => 'integer',
+        'alert_threshold' => 'integer',
     ];
 
     public function category(): BelongsTo
