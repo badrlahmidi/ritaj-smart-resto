@@ -13,52 +13,46 @@ use Filament\Tables\Table;
 class PrinterResource extends Resource
 {
     protected static ?string $model = Printer::class;
-    protected static ?string $navigationGroup = '⚙️ Configuration';
     protected static ?string $navigationIcon = 'heroicon-o-printer';
-    protected static ?string $label = 'Imprimante';
+    protected static ?string $navigationGroup = 'Infrastructure & Sécurité'; // Updated Group
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Section::make('Connexion')
-                    ->schema([
-                        Forms\Components\TextInput::make('name')
-                            ->label('Nom (ex: Cuisine)')
-                            ->required(),
-                        Forms\Components\Select::make('type')
-                            ->options([
-                                'network' => 'Réseau (Ethernet/Wifi)',
-                                'usb' => 'USB / Local',
-                            ])
-                            ->default('network')
-                            ->reactive(),
-                        Forms\Components\TextInput::make('ip_address')
-                            ->label('Adresse IP')
-                            ->placeholder('192.168.1.200')
-                            ->hidden(fn (Forms\Get $get) => $get('type') !== 'network'),
-                        Forms\Components\TextInput::make('port')
-                            ->default(9100)
-                            ->numeric()
-                            ->hidden(fn (Forms\Get $get) => $get('type') !== 'network'),
-                        Forms\Components\TextInput::make('path')
-                            ->label('Chemin USB / Partage')
-                            ->hidden(fn (Forms\Get $get) => $get('type') !== 'usb'),
-                    ])->columns(2),
-
-                Forms\Components\Section::make('Routage')
-                    ->schema([
-                        Forms\Components\CheckboxList::make('station_tags')
-                            ->label('Postes assignés')
-                            ->options([
-                                'kitchen' => 'Cuisine Principale',
-                                'pizza_oven' => 'Four Pizza',
-                                'bar' => 'Bar',
-                            ])
-                            ->columns(3),
-                        Forms\Components\Toggle::make('is_active')
-                            ->default(true),
-                    ]),
+                Forms\Components\TextInput::make('name')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\Select::make('type')
+                    ->options([
+                        'network' => 'Réseau (IP)',
+                        'usb' => 'USB / Direct',
+                    ])
+                    ->required()
+                    ->default('network'),
+                Forms\Components\TextInput::make('path')
+                    ->label('Adresse IP ou Chemin USB')
+                    ->placeholder('192.168.1.200 ou /dev/usb/lp0')
+                    ->nullable(),
+                Forms\Components\TextInput::make('port')
+                    ->numeric()
+                    ->default(9100)
+                    ->visible(fn (Forms\Get $get) => $get('type') === 'network'),
+                
+                // Fix: CheckboxList returns array, needs JSON casting in model
+                Forms\Components\CheckboxList::make('station_tags')
+                    ->label('Postes de cuisine associés')
+                    ->options([
+                        'bar' => 'Bar / Boissons',
+                        'kitchen' => 'Cuisine Principale',
+                        'grill' => 'Grillades',
+                        'pizza' => 'Four à Pizza',
+                    ])
+                    ->columns(2),
+                
+                Forms\Components\Toggle::make('is_active')
+                    ->label('Actif')
+                    ->default(true),
             ]);
     }
 
@@ -66,18 +60,42 @@ class PrinterResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')->weight('bold'),
-                Tables\Columns\TextColumn::make('type')->badge(),
-                Tables\Columns\TextColumn::make('ip_address')->label('IP / Port')
-                    ->description(fn (Printer $record) => $record->type === 'network' ? $record->port : $record->path),
-                Tables\Columns\IconColumn::make('is_active')->boolean(),
+                Tables\Columns\TextColumn::make('name')->searchable(),
+                Tables\Columns\TextColumn::make('type')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'network' => 'info',
+                        'usb' => 'warning',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('path')->label('Cible'),
+                Tables\Columns\TextColumn::make('station_tags')
+                    ->badge()
+                    ->separator(',')
+                    ->limitList(3),
+                Tables\Columns\IconColumn::make('is_active')
+                    ->boolean(),
+            ])
+            ->filters([
+                //
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
+            ])
+            ->bulkActions([
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
+                ]),
             ]);
     }
-    
+
+    public static function getRelations(): array
+    {
+        return [
+            //
+        ];
+    }
+
     public static function getPages(): array
     {
         return [
