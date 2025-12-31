@@ -22,11 +22,11 @@ class StatsOverviewWidget extends BaseWidget
         // CA Jour (Revenue Today)
         $revenueToday = Order::whereDate('created_at', $today)
             ->where('status', 'paid')
-            ->sum('total_amount');
+            ->sum('total_amount'); // Correction here: ensure column is total_amount
             
         $revenueYesterday = Order::whereDate('created_at', $yesterday)
             ->where('status', 'paid')
-            ->sum('total_amount');
+            ->sum('total_amount'); // Correction here: ensure column is total_amount
 
         $revenueChange = $revenueYesterday > 0 
             ? (($revenueToday - $revenueYesterday) / $revenueYesterday) * 100 
@@ -39,19 +39,15 @@ class StatsOverviewWidget extends BaseWidget
         // Commandes Ouvertes (Open Orders)
         $openOrders = Order::whereIn('status', ['pending', 'in_progress', 'served'])->count();
 
-        // Stock Alerts - FIX: Use correct column names from migration
-        // 'stock_quantity' instead of 'current_stock'
-        // 'alert_threshold' instead of 'min_stock_alert'
-        
+        // Stock Alerts
         $lowStockIngredients = 0;
         
         try {
-            // Vérification basique pour éviter le crash si la table n'existe pas encore complètement
             if (Schema::hasTable('ingredients')) {
                  $lowStockIngredients = Ingredient::whereColumn('stock_quantity', '<=', 'alert_threshold')->count();
             }
         } catch (\Exception $e) {
-            // Silently fail or log if needed
+            // Silently fail
         }
 
         return [
@@ -59,7 +55,7 @@ class StatsOverviewWidget extends BaseWidget
                 ->description($revenueChange >= 0 ? '+' . number_format($revenueChange, 1) . '% vs Hier' : number_format($revenueChange, 1) . '% vs Hier')
                 ->descriptionIcon($revenueChange >= 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
                 ->color($revenueChange >= 0 ? 'success' : 'danger')
-                ->chart([$revenueYesterday, $revenueToday]), // Simple trend
+                ->chart([$revenueYesterday, $revenueToday]),
 
             Stat::make('Ticket Moyen', number_format($avgTicket, 2) . ' DH')
                 ->description('Sur ' . $ordersCount . ' commandes')
