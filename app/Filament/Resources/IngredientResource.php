@@ -15,7 +15,8 @@ class IngredientResource extends Resource
     protected static ?string $model = Ingredient::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-beaker';
-    protected static ?string $navigationGroup = 'Menu';
+    protected static ?string $navigationGroup = '📦 Catalogue & Stock'; // Changed
+    protected static ?int $navigationSort = 2; // After Products
     protected static ?string $label = 'Ingrédient / Stock';
 
     public static function form(Form $form): Form
