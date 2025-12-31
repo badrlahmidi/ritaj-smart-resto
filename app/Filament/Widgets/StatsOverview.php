@@ -8,8 +8,12 @@ use Filament\Widgets\StatsOverviewWidget\Stat;
 
 class StatsOverview extends BaseWidget
 {
-    // Rafraîchir toutes les 30s
-    protected int | string | array $pollingInterval = '30s';
+    // Fix: pollingInterval must be static in newer Filament versions or compatible with parent
+    // However, typically in Filament 3 widgets, it can be protected static ?string $pollingInterval = '30s';
+    // Let's match the parent signature or use the method if property fails.
+    // Checking Filament docs, usually it is: protected static ?string $pollingInterval = '15s';
+    
+    protected static ?string $pollingInterval = '30s';
 
     protected function getStats(): array
     {
