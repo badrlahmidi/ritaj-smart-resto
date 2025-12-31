@@ -15,7 +15,8 @@ class CategoryResource extends Resource
     protected static ?string $model = Category::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-tag';
-    protected static ?string $navigationGroup = 'Menu Management';
+    protected static ?string $navigationGroup = '📦 Catalogue & Stock'; // Changed
+    protected static ?int $navigationSort = 0; // First in catalogue
 
     public static function form(Form $form): Form
     {
@@ -25,6 +26,7 @@ class CategoryResource extends Resource
                     ->required()
                     ->maxLength(255),
                 Forms\Components\FileUpload::make('image_url')
+                    ->label('Image')
                     ->image()
                     ->directory('categories'),
                 Forms\Components\Toggle::make('is_active')
@@ -37,7 +39,8 @@ class CategoryResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('image_url'),
+                Tables\Columns\ImageColumn::make('image_url')
+                    ->label('Image'),
                 Tables\Columns\TextColumn::make('name')
                     ->searchable(),
                 Tables\Columns\IconColumn::make('is_active')
@@ -52,7 +55,6 @@ class CategoryResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
