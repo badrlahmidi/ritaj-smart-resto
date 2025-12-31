@@ -48,10 +48,11 @@ class PosLoginPage extends Component
                 
                 // Redirection basée sur le rôle
                 if ($user->role === 'kitchen') {
-                    return redirect()->route('filament.admin.pages.kitchen-display'); // À créer ou adapter
+                    // return redirect()->route('kitchen.display'); // Future route
+                    return redirect()->to('/admin'); // Fallback for now
                 }
                 
-                return redirect()->route('filament.admin.pages.pos-page'); // Page POS principale
+                return redirect()->route('pos'); // Page POS principale
             }
         }
 
