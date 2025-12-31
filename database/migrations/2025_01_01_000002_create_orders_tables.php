@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -10,11 +11,12 @@ return new class extends Migration
     {
         Schema::create('orders', function (Blueprint $table) {
             $table->uuid('uuid')->primary();
-            $table->unsignedBigInteger('local_id')->autoIncrement(); // Sequential ID for local display
+            // On crée d'abord la colonne en tant que clé unique simple
+            $table->unsignedBigInteger('local_id')->unique(); 
             $table->foreignId('table_id')->nullable()->constrained('tables')->nullOnDelete();
             $table->foreignId('waiter_id')->constrained('users');
             $table->enum('status', ['pending', 'sent_to_kitchen', 'ready', 'paid', 'cancelled'])->default('pending');
-            $table->boolean('sync_status')->default(false)->index(); // False = needs sync
+            $table->boolean('sync_status')->default(false)->index();
             $table->string('payment_method')->nullable();
             $table->decimal('total_amount', 10, 2)->default(0);
             $table->timestamps();
@@ -27,10 +29,14 @@ return new class extends Migration
             $table->integer('quantity');
             $table->decimal('unit_price', 10, 2);
             $table->decimal('total_price', 10, 2);
-            $table->string('notes')->nullable(); // Ex: "Sans oignons"
-            $table->boolean('printed_kitchen')->default(false); // For kitchen printer logic
+            $table->string('notes')->nullable();
+            $table->boolean('printed_kitchen')->default(false);
             $table->timestamps();
         });
+
+        // Application de l'AUTO_INCREMENT sur local_id via SQL brut
+        // MySQL exige qu'une colonne auto-increment soit une clé (ici UNIQUE)
+        DB::statement('ALTER TABLE orders MODIFY local_id BIGINT UNSIGNED AUTO_INCREMENT');
     }
 
     public function down(): void
