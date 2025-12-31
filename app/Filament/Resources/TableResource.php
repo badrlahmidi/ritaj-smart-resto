@@ -7,95 +7,60 @@ use App\Models\Table;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Tables as FilamentTable;
-use Filament\Tables\Table as FilamentTableInstance;
+use Filament\Tables;
+use Filament\Tables\Table as FilamentTable;
 
 class TableResource extends Resource
 {
     protected static ?string $model = Table::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-view-columns';
-    protected static ?string $navigationGroup = '⚙️ Config'; 
-    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationIcon = 'heroicon-o-table-cells';
+    protected static ?string $navigationGroup = 'Infrastructure & Sécurité';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\Group::make()
-                    ->schema([
-                        Forms\Components\Section::make('Détails Table')
-                            ->schema([
-                                Forms\Components\TextInput::make('name')
-                                    ->label('Numéro / Nom')
-                                    ->required()
-                                    ->placeholder('T1, VIP...'),
-                                
-                                Forms\Components\Select::make('area_id')
-                                    ->label('Zone')
-                                    ->relationship('area', 'name')
-                                    ->required()
-                                    ->createOptionForm([
-                                        Forms\Components\TextInput::make('name')->required(),
-                                    ]),
-
-                                Forms\Components\TextInput::make('capacity')
-                                    ->label('Couverts')
-                                    ->numeric()
-                                    ->default(4)
-                                    ->minValue(1),
-
-                                Forms\Components\Select::make('shape')
-                                    ->label('Forme')
-                                    ->options([
-                                        'square' => 'Carrée (2-4p)',
-                                        'round' => 'Ronde (4-8p)',
-                                        'rectangle' => 'Rectangulaire (6+)',
-                                    ])
-                                    ->default('square')
-                                    ->required(),
-                            ])->columns(2),
-                    ]),
-
-                Forms\Components\Group::make()
-                    ->schema([
-                        Forms\Components\Section::make('Position (Plan)')
-                            ->description('Coordonnées sur le plan virtuel')
-                            ->schema([
-                                Forms\Components\TextInput::make('position_x')
-                                    ->label('X (%)')
-                                    ->numeric(),
-                                Forms\Components\TextInput::make('position_y')
-                                    ->label('Y (%)')
-                                    ->numeric(),
-                                Forms\Components\Select::make('status')
-                                    ->options([
-                                        'available' => 'Libre',
-                                        'occupied' => 'Occupée',
-                                        'reserved' => 'Réservée',
-                                    ])
-                                    ->default('available'),
-                            ])->columns(2),
-                    ]),
+                Forms\Components\TextInput::make('name')
+                    ->required()
+                    ->maxLength(255),
+                Forms\Components\Select::make('area_id')
+                    ->relationship('area', 'name')
+                    ->required(),
+                Forms\Components\TextInput::make('capacity')
+                    ->numeric()
+                    ->default(4)
+                    ->required(),
+                Forms\Components\Select::make('shape')
+                    ->options([
+                        'square' => 'Carrée',
+                        'round' => 'Ronde',
+                        'rectangle' => 'Rectangulaire',
+                    ])
+                    ->default('square')
+                    ->required(),
+                Forms\Components\Select::make('status')
+                    ->options([
+                        'available' => 'Disponible',
+                        'occupied' => 'Occupée',
+                        'reserved' => 'Réservée',
+                    ])
+                    ->default('available')
+                    ->required(),
+                
+                // Hidden fields for positioning (managed by floor plan editor ideally, but defaults needed here)
+                Forms\Components\Hidden::make('position_x')->default(0),
+                Forms\Components\Hidden::make('position_y')->default(0),
             ]);
     }
 
-    public static function table(FilamentTableInstance $table): FilamentTableInstance
+    public static function table(FilamentTable $table): FilamentTable
     {
         return $table
             ->columns([
-                FilamentTable\Columns\TextColumn::make('name')
-                    ->searchable()
-                    ->sortable()
-                    ->weight('bold'),
-                FilamentTable\Columns\TextColumn::make('area.name')
-                    ->label('Zone')
-                    ->sortable()
-                    ->badge(),
-                FilamentTable\Columns\TextColumn::make('capacity')
-                    ->label('Pers.')
-                    ->icon('heroicon-o-user'),
-                FilamentTable\Columns\TextColumn::make('status')
+                Tables\Columns\TextColumn::make('name')->searchable()->sortable(),
+                Tables\Columns\TextColumn::make('area.name')->sortable(),
+                Tables\Columns\TextColumn::make('capacity')->sortable(),
+                Tables\Columns\TextColumn::make('status')
                     ->badge()
                     ->color(fn (string $state): string => match ($state) {
                         'available' => 'success',
@@ -105,16 +70,21 @@ class TableResource extends Resource
                     }),
             ])
             ->filters([
-                FilamentTable\Filters\SelectFilter::make('area_id')
-                    ->relationship('area', 'name')
-                    ->label('Zone'),
+                Tables\Filters\SelectFilter::make('area')->relationship('area', 'name'),
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        'available' => 'Disponible',
+                        'occupied' => 'Occupée',
+                        'reserved' => 'Réservée',
+                    ]),
             ])
             ->actions([
-                FilamentTable\Actions\EditAction::make(),
+                Tables\Actions\EditAction::make(),
+                Tables\Actions\DeleteAction::make(),
             ])
             ->bulkActions([
-                FilamentTable\Actions\BulkActionGroup::make([
-                    FilamentTable\Actions\DeleteBulkAction::make(),
+                Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
     }
