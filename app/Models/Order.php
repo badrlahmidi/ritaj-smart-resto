@@ -8,7 +8,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Order extends Model
 {
+    // Configuration UUID
+    protected $primaryKey = 'uuid';
+    protected $keyType = 'string';
+    public $incrementing = false;
+
     protected $fillable = [
+        'uuid',
         'user_id',
         'table_id',
         'status',
@@ -19,7 +25,8 @@ class Order extends Model
 
     public function items(): HasMany
     {
-        return $this->hasMany(OrderItem::class);
+        // Relation avec OrderItem via uuid
+        return $this->hasMany(OrderItem::class, 'order_uuid', 'uuid');
     }
 
     public function table(): BelongsTo
