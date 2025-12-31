@@ -19,9 +19,12 @@ class TopProductsWidget extends BaseWidget
         return $table
             ->query(
                 OrderItem::query()
-                    ->select('product_id', DB::raw('SUM(quantity) as total_qty'), DB::raw('SUM(unit_price * quantity) as total_revenue'))
-                    ->whereHas('order', fn($q) => $q->where('status', 'paid')->whereMonth('created_at', now()->month))
-                    ->groupBy('product_id')
+                    ->select('order_items.product_id', DB::raw('SUM(order_items.quantity) as total_qty'), DB::raw('SUM(order_items.unit_price * order_items.quantity) as total_revenue'))
+                    ->join('orders', 'orders.uuid', '=', 'order_items.order_uuid')
+                    ->where('orders.status', 'paid')
+                    ->whereMonth('orders.created_at', now()->month)
+                    ->whereYear('orders.created_at', now()->year)
+                    ->groupBy('order_items.product_id')
                     ->orderByDesc('total_qty')
                     ->limit(5)
             )
