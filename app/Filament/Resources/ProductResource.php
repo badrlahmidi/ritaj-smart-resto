@@ -16,119 +16,151 @@ class ProductResource extends Resource
     protected static ?string $model = Product::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-cake';
-    protected static ?string $navigationGroup = 'Menu';
+    protected static ?string $navigationGroup = '📦 Catalogue & Stock';
+    protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
         return $form
+            ->columns(3) // Layout 3 colonnes : 2/3 Main + 1/3 Sidebar
             ->schema([
+                // --- COLONNE PRINCIPALE (2/3) ---
                 Forms\Components\Group::make()
+                    ->columnSpan(['lg' => 2])
                     ->schema([
-                        Forms\Components\Section::make('Détails Produit')
+                        Forms\Components\Section::make('Informations Générales')
                             ->schema([
-                                Forms\Components\Select::make('category_id')
-                                    ->relationship('category', 'name')
-                                    ->required(),
                                 Forms\Components\TextInput::make('name')
+                                    ->label('Nom du Produit')
                                     ->required()
                                     ->maxLength(255),
-                                Forms\Components\FileUpload::make('image_url')
-                                    ->label('Photo')
-                                    ->image()
-                                    ->imageEditor()
-                                    ->directory('products'),
-                                Forms\Components\Toggle::make('is_available')
+                                
+                                Forms\Components\Select::make('category_id')
+                                    ->relationship('category', 'name')
+                                    ->label('Catégorie')
                                     ->required()
-                                    ->default(true),
+                                    ->preload()
+                                    ->searchable(),
+
+                                Forms\Components\Textarea::make('description')
+                                    ->label('Description courte')
+                                    ->rows(2)
+                                    ->placeholder('Ingrédients principaux, allergènes...'),
                             ])->columns(2),
 
                         Forms\Components\Section::make('Stratégie Tarifaire')
                             ->description('Définissez les prix selon le canal de vente.')
                             ->columns(3)
                             ->schema([
-                                // 1. PRIX DE BASE (OBLIGATOIRE)
                                 Forms\Components\TextInput::make('price')
                                     ->label('Prix À Table (Base)')
                                     ->numeric()
                                     ->prefix('DH')
+                                    ->minValue(0)
                                     ->required()
-                                    ->live(onBlur: true), // Pour mettre à jour les placeholders à côté
+                                    ->live(onBlur: true),
 
-                                // 2. PRIX EMPORTER (OPTIONNEL)
                                 Forms\Components\TextInput::make('price_takeaway')
                                     ->label('Prix Emporter')
                                     ->numeric()
                                     ->prefix('DH')
-                                    ->placeholder(fn (Get $get) => $get('price') ? $get('price') . ' (Auto)' : 'Idem Base')
-                                    ->helperText('Laisser vide pour utiliser le prix À Table.'),
+                                    ->minValue(0)
+                                    ->placeholder(fn (Get $get) => $get('price') ? $get('price') . ' (Auto)' : 'Idem Base'),
 
-                                // 3. PRIX LIVRAISON (OPTIONNEL)
                                 Forms\Components\TextInput::make('price_delivery')
                                     ->label('Prix Livraison')
                                     ->numeric()
                                     ->prefix('DH')
-                                    ->placeholder(fn (Get $get) => $get('price') ? $get('price') . ' (Auto)' : 'Idem Base')
-                                    ->helperText('Laisser vide pour utiliser le prix À Table.'),
+                                    ->minValue(0)
+                                    ->placeholder(fn (Get $get) => $get('price') ? $get('price') . ' (Auto)' : 'Idem Base'),
                             ]),
 
-                        // Section Recette / Ingrédients
                         Forms\Components\Section::make('Fiche Technique (Recette)')
-                            ->description('Ajoutez les ingrédients nécessaires à la fabrication de ce produit')
+                            ->description('Ajoutez les ingrédients consommés à chaque vente.')
                             ->schema([
                                 Forms\Components\Repeater::make('ingredients')
                                     ->relationship()
                                     ->schema([
                                         Forms\Components\Select::make('ingredient_id')
                                             ->relationship('ingredient', 'name')
+                                            ->label('Ingrédient')
                                             ->required()
                                             ->searchable()
                                             ->preload()
-                                            ->distinct()
                                             ->disableOptionsWhenSelectedInSiblingRepeaterItems(),
+                                            
                                         Forms\Components\TextInput::make('quantity')
-                                            ->label('Quantité')
+                                            ->label('Qté')
                                             ->numeric()
+                                            ->default(1)
                                             ->required(),
+                                            
                                         Forms\Components\Select::make('unit')
                                             ->label('Unité')
                                             ->options([
-                                                'kg' => 'Kilogramme (kg)',
-                                                'g' => 'Gramme (g)',
-                                                'l' => 'Litre (L)',
-                                                'ml' => 'Millilitre (ml)',
-                                                'unit' => 'Unité (pcs)',
+                                                'kg' => 'kg', 'g' => 'g', 'l' => 'L', 'ml' => 'ml', 'unit' => 'pcs'
                                             ])
                                             ->default('kg')
                                             ->required(),
                                     ])
                                     ->columns(3)
                                     ->defaultItems(0)
-                                    ->addActionLabel('Ajouter un ingrédient')
+                                    ->addActionLabel('Ajouter ingrédient')
                             ])
                             ->collapsed(),
-                    ])->columnSpan(2),
+                    ]),
 
+                // --- COLONNE LATÉRALE (1/3) ---
                 Forms\Components\Group::make()
+                    ->columnSpan(['lg' => 1])
                     ->schema([
-                        Forms\Components\Section::make('Stock (Produit Fini)')
+                        Forms\Components\Section::make('Média')
                             ->schema([
+                                Forms\Components\FileUpload::make('image_url')
+                                    ->label('Photo')
+                                    ->image()
+                                    ->imageEditor()
+                                    ->directory('products')
+                                    ->columnSpanFull(),
+                            ]),
+
+                        Forms\Components\Section::make('Paramètres & Visibilité')
+                            ->schema([
+                                Forms\Components\Toggle::make('is_available')
+                                    ->label('Disponible à la vente')
+                                    ->helperText('Affiché sur le menu serveur')
+                                    ->onColor('success')
+                                    ->default(true),
+
                                 Forms\Components\Toggle::make('track_stock')
-                                    ->label('Suivi de stock')
-                                    ->helperText('Activer uniquement si vous gérez le stock du produit fini (ex: Canette). Pour les plats cuisinés, utilisez la fiche technique.')
+                                    ->label('Gérer Stock (Produit Fini)')
+                                    ->helperText('Pour canettes, desserts tout faits...')
                                     ->reactive(),
+
                                 Forms\Components\TextInput::make('stock_quantity')
-                                    ->label('Quantité en stock')
+                                    ->label('Stock Actuel')
                                     ->numeric()
                                     ->default(0)
-                                    ->hidden(fn (Forms\Get $get) => !$get('track_stock')),
+                                    ->hidden(fn (Get $get) => !$get('track_stock')),
+                                
                                 Forms\Components\TextInput::make('alert_threshold')
-                                    ->label('Seuil d\'alerte')
+                                    ->label('Seuil Alerte')
                                     ->numeric()
                                     ->default(5)
-                                    ->hidden(fn (Forms\Get $get) => !$get('track_stock')),
+                                    ->hidden(fn (Get $get) => !$get('track_stock')),
+
+                                Forms\Components\Select::make('printer_destination')
+                                    ->label('Imprimante Cible') // Champ virtuel pour l'instant (à implémenter en DB plus tard si besoin)
+                                    ->options([
+                                        'kitchen' => 'Cuisine',
+                                        'bar' => 'Bar',
+                                        'pizza' => 'Four Pizza'
+                                    ])
+                                    ->default('kitchen')
+                                    ->selectablePlaceholder(false),
                             ]),
-                    ])->columnSpan(1),
-            ])->columns(3);
+                    ]),
+            ]);
     }
 
     public static function table(Table $table): Table
@@ -137,19 +169,32 @@ class ProductResource extends Resource
             ->columns([
                 Tables\Columns\ImageColumn::make('image_url')
                     ->label('Photo')
-                    ->square(),
+                    ->square()
+                    ->size(40),
+                    
                 Tables\Columns\TextColumn::make('name')
+                    ->label('Désignation')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->weight('bold'),
+                    
                 Tables\Columns\TextColumn::make('category.name')
+                    ->label('Catégorie')
+                    ->badge()
+                    ->color('gray')
                     ->sortable(),
+                    
                 Tables\Columns\TextColumn::make('price')
+                    ->label('Prix')
                     ->money('mad')
                     ->sortable(),
-                Tables\Columns\IconColumn::make('is_available')
-                    ->boolean(),
+
+                Tables\Columns\ToggleColumn::make('is_available') // Toggle direct dans la liste
+                    ->label('Dispo.'),
+
                 Tables\Columns\TextColumn::make('stock_quantity')
                     ->label('Stock')
+                    ->badge()
                     ->color(fn (Product $record) => $record->track_stock && $record->stock_quantity <= $record->alert_threshold ? 'danger' : 'success')
                     ->formatStateUsing(fn (Product $record) => $record->track_stock ? $record->stock_quantity : '-')
                     ->sortable(),
