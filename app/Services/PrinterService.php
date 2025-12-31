@@ -5,18 +5,37 @@ namespace App\Services;
 use App\Models\Order;
 use Illuminate\Support\Facades\Log;
 use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
+use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
+use Mike42\Escpos\PrintConnectors\DummyPrintConnector;
 use Mike42\Escpos\Printer;
 
 class PrinterService
 {
-    protected ?string $kitchenIp;
-    protected ?int $kitchenPort;
-
-    public function __construct()
+    public function getConnector()
     {
-        // On suppose que ces configs sont dans config/services.php ou .env
-        $this->kitchenIp = config('services.printer.kitchen_ip', '192.168.1.200');
-        $this->kitchenPort = config('services.printer.kitchen_port', 9100);
+        $driver = config('services.printer.driver', 'dummy');
+
+        try {
+            switch ($driver) {
+                case 'network':
+                    $ip = config('services.printer.network.ip');
+                    $port = config('services.printer.network.port', 9100);
+                    return new NetworkPrintConnector($ip, $port);
+                
+                case 'windows':
+                    $name = config('services.printer.windows.name');
+                    // "Microsoft Print to PDF" ou nom d'imprimante USB partagée
+                    return new WindowsPrintConnector($name);
+                
+                case 'dummy':
+                default:
+                    // Utile pour dev sans imprimante (log only)
+                    return new DummyPrintConnector();
+            }
+        } catch (\Exception $e) {
+            Log::error("Printer Connection Failed ($driver): " . $e->getMessage());
+            return null;
+        }
     }
 
     /**
@@ -32,8 +51,9 @@ class PrinterService
         }
 
         try {
-            // Connexion imprimante
-            $connector = new NetworkPrintConnector($this->kitchenIp, $this->kitchenPort);
+            $connector = $this->getConnector();
+            if (!$connector) return false;
+
             $printer = new Printer($connector);
 
             // Header
@@ -54,6 +74,9 @@ class PrinterService
                 $printer->setTextSize(2, 1); // Largeur double pour lisibilité
                 $qty = str_pad($item->quantity, 2, ' ', STR_PAD_LEFT);
                 $name = $item->product?->name ?? 'Article inconnu';
+                
+                // Transliteration simple pour éviter problèmes encodage sur certaines imprimantes
+                // $name = iconv('UTF-8', 'ASCII//TRANSLIT', $name);
                 
                 $printer->text("{$qty} x {$name}\n");
                 
@@ -91,9 +114,9 @@ class PrinterService
     public function printBill(Order $order): bool
     {
         try {
-            // Pour l'addition, on imprime souvent sur une imprimante locale USB ou une autre IP
-            // Ici on utilise la même config pour l'exemple, à adapter
-            $connector = new NetworkPrintConnector($this->kitchenIp, $this->kitchenPort); 
+            $connector = $this->getConnector();
+            if (!$connector) return false;
+
             $printer = new Printer($connector);
 
             $printer->setJustification(Printer::JUSTIFY_CENTER);
