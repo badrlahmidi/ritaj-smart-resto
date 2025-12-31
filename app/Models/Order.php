@@ -2,43 +2,24 @@
 
 namespace App\Models;
 
-use App\Enums\OrderStatus;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Str;
 
 class Order extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
-        'uuid',
-        'local_id',
+        'user_id',
         'table_id',
-        'waiter_id',
         'status',
+        'type',
         'total_amount',
-        'notes',
-        'payment_method',
-        'is_stock_deducted', // Added this
+        'payment_status',
     ];
 
-    protected $casts = [
-        'status' => OrderStatus::class,
-        'total_amount' => 'decimal:2',
-        'is_stock_deducted' => 'boolean',
-    ];
-
-    protected static function boot()
+    public function items(): HasMany
     {
-        parent::boot();
-
-        static::creating(function ($model) {
-            $model->uuid = (string) Str::uuid();
-            $model->local_id = static::max('local_id') + 1;
-        });
+        return $this->hasMany(OrderItem::class);
     }
 
     public function table(): BelongsTo
@@ -46,13 +27,8 @@ class Order extends Model
         return $this->belongsTo(Table::class);
     }
 
-    public function waiter(): BelongsTo
+    public function server(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'waiter_id');
-    }
-
-    public function items(): HasMany
-    {
-        return $this->hasMany(OrderItem::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 }
