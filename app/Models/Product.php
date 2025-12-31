@@ -37,7 +37,8 @@ class Product extends Model
 
     public function ingredients(): BelongsToMany
     {
-        return $this->belongsToMany(Ingredient::class)
+        // Explicitly define 'product_ingredient' as the pivot table name
+        return $this->belongsToMany(Ingredient::class, 'product_ingredient')
             ->withPivot(['quantity', 'unit'])
             ->withTimestamps();
     }
