@@ -9,16 +9,33 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('role')->default('server'); // admin, manager, server, kitchen
-            $table->string('pin_code')->nullable(); // For POS login
-            $table->string('avatar_url')->nullable();
+            if (!Schema::hasColumn('users', 'role')) {
+                $table->string('role')->default('server'); // admin, manager, server, kitchen
+            }
+            
+            if (!Schema::hasColumn('users', 'pin_code')) {
+                $table->string('pin_code')->nullable(); // For POS login
+            }
+            
+            if (!Schema::hasColumn('users', 'avatar_url')) {
+                $table->string('avatar_url')->nullable();
+            }
         });
     }
 
     public function down(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['role', 'pin_code', 'avatar_url']);
+            // On ne drop que si la colonne existe pour éviter les erreurs
+            $columnsToDrop = [];
+            
+            if (Schema::hasColumn('users', 'role')) $columnsToDrop[] = 'role';
+            if (Schema::hasColumn('users', 'pin_code')) $columnsToDrop[] = 'pin_code';
+            if (Schema::hasColumn('users', 'avatar_url')) $columnsToDrop[] = 'avatar_url';
+
+            if (!empty($columnsToDrop)) {
+                $table->dropColumn($columnsToDrop);
+            }
         });
     }
 };
