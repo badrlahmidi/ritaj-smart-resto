@@ -125,7 +125,7 @@ class PosInterface extends Component
             $order->save();
         });
 
-        // Todo: Trigger PrinterService
+        // Trigger PrinterService Logic here in future
         
         $this->resetCart();
         $this->view = 'tables'; // Go back to table view
