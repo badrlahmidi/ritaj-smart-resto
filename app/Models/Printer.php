@@ -4,29 +4,36 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Printer extends Model
 {
     use HasFactory;
+    
+    protected $guarded = [];
 
-    protected $fillable = [
-        'name',
-        'type',
-        'ip_address',
-        'port',
-        'path',
-        'station_tags',
-        'is_active',
-    ];
-
-    protected $casts = [
-        'station_tags' => 'array',
-        'is_active' => 'boolean',
-    ];
-
-    public function jobs(): HasMany
+    // Helper: Discover Windows Printers
+    public static function getSystemPrinters(): array
     {
-        return $this->hasMany(PrintJob::class);
+        try {
+            // Windows PowerShell command to list printers
+            $command = 'powershell -Command "Get-Printer | Select-Object Name | ConvertTo-Json"';
+            $output = shell_exec($command);
+            $printers = json_decode($output, true);
+            
+            if (is_array($printers)) {
+                // Handle single result vs multiple results from PowerShell JSON
+                if (isset($printers['Name'])) {
+                    return [$printers['Name'] => $printers['Name']];
+                }
+                $list = [];
+                foreach ($printers as $p) {
+                    $list[$p['Name']] = $p['Name'];
+                }
+                return $list;
+            }
+            return [];
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 }
