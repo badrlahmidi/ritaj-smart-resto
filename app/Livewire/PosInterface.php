@@ -101,7 +101,7 @@ class PosInterface extends Component
                     'uuid' => Str::uuid(),
                     'table_id' => $table->id,
                     'waiter_id' => Auth::id(), // Use logged in filament user
-                    'status' => 'sent_to_kitchen',
+                    'status' => 'sent_to_kitchen', // CRUCIAL : Doit être 'sent_to_kitchen' pour apparaître au KDS
                     'sync_status' => false
                 ]);
                 
@@ -109,8 +109,10 @@ class PosInterface extends Component
                 $this->selectedTableOrderUuid = $order->uuid;
             } else {
                 $order = Order::find($table->current_order_uuid);
-                // Si une commande existait, on s'assure qu'elle repasse en "sent_to_kitchen" si elle était pending
-                if ($order->status === 'pending') {
+                
+                // Si commande existante, on met à jour le statut pour être sûr qu'elle apparaisse en cuisine
+                // Sauf si elle est déjà payée (ce qui ne devrait pas arriver ici en théorie)
+                if ($order->status !== 'paid' && $order->status !== 'cancelled') {
                     $order->update(['status' => 'sent_to_kitchen']);
                 }
             }
@@ -137,6 +139,8 @@ class PosInterface extends Component
         // Trigger PrinterService Logic
         if ($orderUuid) {
             $order = Order::find($orderUuid);
+            
+            // Impression
             $printed = $printer->printKitchenTicket($order);
             
             if (!$printed) {
