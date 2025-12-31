@@ -1,6 +1,41 @@
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4" wire:poll.5s>
+    
+    <!-- Son de notification -->
+    <audio id="newOrderSound" src="https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3" preload="auto"></audio>
+
+    <script>
+        document.addEventListener('livewire:initialized', () => {
+            let previousCount = @json($this->orders->count());
+
+            setInterval(() => {
+                // Cette logique est simplifiée; idéalement Livewire devrait émettre un événement quand count change
+                // Mais avec wire:poll, on peut comparer côté serveur si on veut.
+                // Ici, on utilise un event dispatché depuis le composant PHP si possible, 
+                // ou on laisse le poll faire le refresh visuel et on ajoute un hook JS.
+            }, 5000);
+            
+            Livewire.hook('morph.updated', ({ component, el }) => {
+                // Hook basique : Si on détecte une augmentation du nombre d'éléments, on joue le son
+                // Pour simplifier, on peut jouer un son léger à chaque refresh si y'a des commandes "Urgent"
+            });
+        });
+    </script>
+    
+    <!-- Notification JS logic via Alpine pour plus de simplicité -->
+    <div x-data="{ 
+            count: {{ $this->orders->count() }},
+            init() {
+                $watch('count', value => {
+                    if (value > 0) {
+                        document.getElementById('newOrderSound').play().catch(e => console.log('Audio autoplay blocked'));
+                    }
+                })
+            }
+        }">
+    </div>
+
     @forelse($this->orders as $order)
-        <div class="bg-white rounded-xl shadow-lg border-l-4 border-blue-500 overflow-hidden">
+        <div class="bg-white rounded-xl shadow-lg border-l-4 border-blue-500 overflow-hidden animate-pulse-once">
             <div class="p-4 bg-gray-50 border-b flex justify-between items-center">
                 <div>
                     <h3 class="font-bold text-lg">Table {{ $order->table->name ?? '?' }}</h3>
