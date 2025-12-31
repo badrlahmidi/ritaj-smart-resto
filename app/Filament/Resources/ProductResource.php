@@ -44,14 +44,51 @@ class ProductResource extends Resource
                                     ->required()
                                     ->default(true),
                             ])->columns(2),
+
+                        // Section Recette / Ingrédients
+                        Forms\Components\Section::make('Fiche Technique (Recette)')
+                            ->description('Ajoutez les ingrédients nécessaires à la fabrication de ce produit')
+                            ->schema([
+                                Forms\Components\Repeater::make('ingredients')
+                                    ->relationship()
+                                    ->schema([
+                                        Forms\Components\Select::make('ingredient_id')
+                                            ->relationship('ingredient', 'name')
+                                            ->required()
+                                            ->searchable()
+                                            ->preload()
+                                            ->distinct()
+                                            ->disableOptionsWhenSelectedInSiblingRepeaterItems(),
+                                        Forms\Components\TextInput::make('quantity')
+                                            ->label('Quantité')
+                                            ->numeric()
+                                            ->required(),
+                                        Forms\Components\Select::make('unit')
+                                            ->label('Unité')
+                                            ->options([
+                                                'kg' => 'Kilogramme (kg)',
+                                                'g' => 'Gramme (g)',
+                                                'l' => 'Litre (L)',
+                                                'ml' => 'Millilitre (ml)',
+                                                'unit' => 'Unité (pcs)',
+                                            ])
+                                            ->default('kg')
+                                            ->required(),
+                                    ])
+                                    ->columns(3)
+                                    ->defaultItems(0)
+                                    ->addActionLabel('Ajouter un ingrédient')
+                            ])
+                            ->collapsed(),
                     ])->columnSpan(2),
 
                 Forms\Components\Group::make()
                     ->schema([
-                        Forms\Components\Section::make('Stock')
+                        Forms\Components\Section::make('Stock (Produit Fini)')
                             ->schema([
                                 Forms\Components\Toggle::make('track_stock')
                                     ->label('Suivi de stock')
+                                    ->helperText('Activer uniquement si vous gérez le stock du produit fini (ex: Canette). Pour les plats cuisinés, utilisez la fiche technique.')
                                     ->reactive(),
                                 Forms\Components\TextInput::make('stock_quantity')
                                     ->label('Quantité en stock')
