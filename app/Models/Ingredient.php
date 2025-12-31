@@ -4,9 +4,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Ingredient extends Model
 {
@@ -14,33 +11,31 @@ class Ingredient extends Model
 
     protected $fillable = [
         'name',
-        'unit_id',
+        'unit', // kg, l, piece
+        'current_stock',
+        'cost_per_unit', // PUMP
+        'min_stock_alert',
         'supplier_id',
-        'cost_per_unit',
-        'stock_quantity',
-        'alert_threshold',
     ];
 
-    public function products(): BelongsToMany
+    /**
+     * Update Weighted Average Cost (PUMP)
+     * Nouveau PUMP = ((Ancien Stock * Ancien Prix) + (Nouvelle Qté * Nouveau Prix)) / (Ancien Stock + Nouvelle Qté)
+     */
+    public function updateCostPrice($newQty, $newUnitCost)
     {
-        // Explicitly define 'product_ingredient' as the pivot table name
-        return $this->belongsToMany(Product::class, 'product_ingredient')
-            ->withPivot(['quantity', 'wastage_percent'])
-            ->withTimestamps();
-    }
+        $oldValue = $this->current_stock * $this->cost_per_unit;
+        $newValue = $newQty * $newUnitCost;
+        $totalQty = $this->current_stock + $newQty;
 
-    public function unit(): BelongsTo
-    {
-        return $this->belongsTo(Unit::class);
-    }
+        if ($totalQty > 0) {
+            $this->cost_per_unit = ($oldValue + $newValue) / $totalQty;
+        } else {
+            // If stock was negative or zero and we just add, cost is the new cost
+             $this->cost_per_unit = $newUnitCost;
+        }
 
-    public function supplier(): BelongsTo
-    {
-        return $this->belongsTo(Supplier::class);
-    }
-
-    public function stockMovements(): HasMany
-    {
-        return $this->hasMany(StockMovement::class);
+        $this->current_stock += $newQty;
+        $this->save();
     }
 }
