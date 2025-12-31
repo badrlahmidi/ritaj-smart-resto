@@ -17,6 +17,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Illuminate\Support\Facades\Storage;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -27,6 +28,21 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            ->brandName(function () {
+                try {
+                    return app(\App\Settings\GeneralSettings::class)->site_name ?? 'Ritaj Smart Resto';
+                } catch (\Exception $e) {
+                    return 'Ritaj Smart Resto';
+                }
+            })
+            ->brandLogo(function () {
+                try {
+                    $logo = app(\App\Settings\GeneralSettings::class)->site_logo;
+                    return $logo ? Storage::url($logo) : null;
+                } catch (\Exception $e) {
+                    return null;
+                }
+            })
             ->colors([
                 'primary' => Color::Amber,
             ])
