@@ -6,6 +6,7 @@ use App\Filament\Resources\ProductResource\Pages;
 use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -31,10 +32,6 @@ class ProductResource extends Resource
                                 Forms\Components\TextInput::make('name')
                                     ->required()
                                     ->maxLength(255),
-                                Forms\Components\TextInput::make('price')
-                                    ->required()
-                                    ->numeric()
-                                    ->prefix('DH'),
                                 Forms\Components\FileUpload::make('image_url')
                                     ->label('Photo')
                                     ->image()
@@ -44,6 +41,35 @@ class ProductResource extends Resource
                                     ->required()
                                     ->default(true),
                             ])->columns(2),
+
+                        Forms\Components\Section::make('Stratégie Tarifaire')
+                            ->description('Définissez les prix selon le canal de vente.')
+                            ->columns(3)
+                            ->schema([
+                                // 1. PRIX DE BASE (OBLIGATOIRE)
+                                Forms\Components\TextInput::make('price')
+                                    ->label('Prix À Table (Base)')
+                                    ->numeric()
+                                    ->prefix('DH')
+                                    ->required()
+                                    ->live(onBlur: true), // Pour mettre à jour les placeholders à côté
+
+                                // 2. PRIX EMPORTER (OPTIONNEL)
+                                Forms\Components\TextInput::make('price_takeaway')
+                                    ->label('Prix Emporter')
+                                    ->numeric()
+                                    ->prefix('DH')
+                                    ->placeholder(fn (Get $get) => $get('price') ? $get('price') . ' (Auto)' : 'Idem Base')
+                                    ->helperText('Laisser vide pour utiliser le prix À Table.'),
+
+                                // 3. PRIX LIVRAISON (OPTIONNEL)
+                                Forms\Components\TextInput::make('price_delivery')
+                                    ->label('Prix Livraison')
+                                    ->numeric()
+                                    ->prefix('DH')
+                                    ->placeholder(fn (Get $get) => $get('price') ? $get('price') . ' (Auto)' : 'Idem Base')
+                                    ->helperText('Laisser vide pour utiliser le prix À Table.'),
+                            ]),
 
                         // Section Recette / Ingrédients
                         Forms\Components\Section::make('Fiche Technique (Recette)')
