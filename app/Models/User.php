@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -24,7 +24,8 @@ class User extends Authenticatable implements FilamentUser
         'email',
         'password',
         'role',
-        'pin_code', // Added PIN code
+        'avatar_url',
+        'is_active',
     ];
 
     /**
@@ -35,7 +36,6 @@ class User extends Authenticatable implements FilamentUser
     protected $hidden = [
         'password',
         'remember_token',
-        'pin_code', // Hide PIN from array serialization
     ];
 
     /**
@@ -46,11 +46,21 @@ class User extends Authenticatable implements FilamentUser
     protected $casts = [
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
-        'pin_code' => 'hashed', // Hash PIN for security
+        'is_active' => 'boolean',
     ];
 
     public function canAccessPanel(Panel $panel): bool
     {
-        return true; // For MVP, allow all users. Later restrict by role.
+        return $this->is_active; // Only active users can access admin
+    }
+
+    public function pin(): HasOne
+    {
+        return $this->hasOne(UserPin::class);
+    }
+
+    public function checkPin(string $pin): bool
+    {
+        return $this->pin && \Illuminate\Support\Facades\Hash::check($pin, $this->pin->pin_code);
     }
 }
