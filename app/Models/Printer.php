@@ -8,32 +8,19 @@ use Illuminate\Database\Eloquent\Model;
 class Printer extends Model
 {
     use HasFactory;
-    
-    protected $guarded = [];
 
-    // Helper: Discover Windows Printers
-    public static function getSystemPrinters(): array
-    {
-        try {
-            // Windows PowerShell command to list printers
-            $command = 'powershell -Command "Get-Printer | Select-Object Name | ConvertTo-Json"';
-            $output = shell_exec($command);
-            $printers = json_decode($output, true);
-            
-            if (is_array($printers)) {
-                // Handle single result vs multiple results from PowerShell JSON
-                if (isset($printers['Name'])) {
-                    return [$printers['Name'] => $printers['Name']];
-                }
-                $list = [];
-                foreach ($printers as $p) {
-                    $list[$p['Name']] = $p['Name'];
-                }
-                return $list;
-            }
-            return [];
-        } catch (\Exception $e) {
-            return [];
-        }
-    }
+    protected $fillable = [
+        'name',
+        'type', // network, usb
+        'ip_address', // Legacy (kept for compatibility)
+        'path', // New standard field (IP or USB path)
+        'port',
+        'station_tags', // JSON array of stations (kitchen, bar, etc.)
+        'is_active',
+    ];
+
+    protected $casts = [
+        'station_tags' => 'array',
+        'is_active' => 'boolean',
+    ];
 }
