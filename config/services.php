@@ -35,10 +35,19 @@ return [
         ],
     ],
     
-    // Ajout Configuration Imprimante
+    // Configuration Imprimante (Multi-driver)
     'printer' => [
-        'kitchen_ip' => env('PRINTER_KITCHEN_IP', '192.168.1.200'),
-        'kitchen_port' => env('PRINTER_KITCHEN_PORT', 9100),
+        'driver' => env('PRINTER_DRIVER', 'network'), // Options: 'network', 'windows', 'dummy'
+        
+        'network' => [
+            'ip' => env('PRINTER_KITCHEN_IP', '192.168.1.200'),
+            'port' => env('PRINTER_KITCHEN_PORT', 9100),
+        ],
+        
+        'windows' => [
+            // Nom de l'imprimante partagée ou locale (ex: "Microsoft Print to PDF" ou "EPSON_TM_T20")
+            'name' => env('PRINTER_NAME', 'Microsoft Print to PDF'), 
+        ],
     ],
 
 ];
