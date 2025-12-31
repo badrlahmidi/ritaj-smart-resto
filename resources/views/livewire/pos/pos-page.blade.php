@@ -1,4 +1,20 @@
-<div class="flex h-full w-full bg-gray-100 font-sans">
+<div class="flex h-full w-full bg-gray-100 font-sans" 
+     x-data="{ notification: { show: false, message: '', type: 'success' } }"
+     x-on:notify.window="notification.show = true; notification.message = $event.detail[0]; notification.type = $event.detail[1] || 'success'; setTimeout(() => notification.show = false, 3000)">
+
+    <!-- NOTIFICATION TOAST -->
+    <div x-show="notification.show" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0 transform -translate-y-2"
+         x-transition:enter-end="opacity-100 transform translate-y-0"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100 transform translate-y-0"
+         x-transition:leave-end="opacity-0 transform -translate-y-2"
+         class="fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-xl font-bold text-white flex items-center gap-2"
+         :class="notification.type === 'error' ? 'bg-red-500' : 'bg-green-500'"
+         style="display: none;">
+         <span x-text="notification.message"></span>
+    </div>
     
     <!-- LEFT: MENU & PRODUCTS (65%) -->
     <div class="flex-1 flex flex-col h-full overflow-hidden">
@@ -80,6 +96,19 @@
             @endforeach
         </div>
 
+        <!-- TABLE SELECTOR (Only for Dine-in) -->
+        @if($orderType === \App\Enums\OrderType::DINE_IN->value)
+            <div class="p-3 border-b border-gray-200 bg-blue-50">
+                <label class="text-xs font-bold text-blue-800 uppercase mb-1 block">Sélectionner une table</label>
+                <select wire:model.live="selectedTableId" class="w-full rounded-lg border-blue-300 text-sm font-bold bg-white focus:ring-blue-500">
+                    <option value="">-- Choisir Table --</option>
+                    @foreach($this->tables as $table)
+                        <option value="{{ $table->id }}">{{ $table->name }} ({{ $table->capacity }} pers)</option>
+                    @endforeach
+                </select>
+            </div>
+        @endif
+
         <!-- CART ITEMS -->
         <div class="flex-1 overflow-y-auto p-4 space-y-3">
             @forelse($cart as $id => $item)
@@ -114,20 +143,25 @@
                 <span class="text-3xl font-bold text-yellow-500">{{ number_format($this->cartTotal, 2) }} <span class="text-sm">DH</span></span>
             </div>
 
-            <div class="grid grid-cols-2 gap-3">
-                <button class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-3 rounded-xl transition">
-                    Attente
-                </button>
-                <button class="bg-yellow-500 hover:bg-yellow-400 text-black font-bold py-3 rounded-xl shadow-lg transform active:scale-95 transition">
-                    ENCAISSER
-                </button>
-            </div>
-            
-            <button class="w-full mt-3 bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl shadow-lg transform active:scale-95 transition flex items-center justify-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                </svg>
-                ENVOYER EN CUISINE
+            <!-- ACTIONS -->
+            <button 
+                wire:click="sendToKitchen"
+                wire:loading.attr="disabled"
+                class="w-full mt-3 bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl shadow-lg transform active:scale-95 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+                <span wire:loading.remove wire:target="sendToKitchen">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 inline-block mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                    ENVOYER EN CUISINE
+                </span>
+                <span wire:loading wire:target="sendToKitchen">
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Traitement...
+                </span>
             </button>
         </div>
     </div>
