@@ -13,27 +13,20 @@ use Filament\Tables\Table;
 class SupplierResource extends Resource
 {
     protected static ?string $model = Supplier::class;
-
-    protected static ?string $navigationIcon = 'heroicon-o-truck';
-    protected static ?string $navigationGroup = '📦 Catalogue & Stock'; // Changed
-    protected static ?int $navigationSort = 3; // After Ingredients
+    protected static ?string $navigationGroup = '📦 Stock & Achats';
+    protected static ?string $navigationIcon = 'heroicon-o-users';
     protected static ?string $label = 'Fournisseur';
 
     public static function form(Form $form): Form
     {
         return $form
             ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->label('Raison Sociale')
-                    ->required(),
-                Forms\Components\TextInput::make('contact_name')
-                    ->label('Contact'),
-                Forms\Components\TextInput::make('phone')
-                    ->tel()
-                    ->label('Téléphone'),
-                Forms\Components\TextInput::make('email')
-                    ->email()
-                    ->label('Email'),
+                Forms\Components\TextInput::make('name')->required(),
+                Forms\Components\TextInput::make('category')->placeholder('Ex: Boucher, Épicerie'),
+                Forms\Components\TextInput::make('contact_name'),
+                Forms\Components\TextInput::make('phone')->tel(),
+                Forms\Components\TextInput::make('email')->email(),
+                Forms\Components\Textarea::make('address')->columnSpanFull(),
             ]);
     }
 
@@ -41,22 +34,17 @@ class SupplierResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('name')->searchable(),
-                Tables\Columns\TextColumn::make('contact_name'),
+                Tables\Columns\TextColumn::make('name')->searchable()->weight('bold'),
+                Tables\Columns\TextColumn::make('category')->badge(),
                 Tables\Columns\TextColumn::make('phone'),
-                Tables\Columns\TextColumn::make('email'),
+                Tables\Columns\TextColumn::make('contact_name'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
                 Tables\Actions\DeleteAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
             ]);
     }
-
+    
     public static function getPages(): array
     {
         return [
