@@ -2,6 +2,7 @@
 
 use App\Livewire\CashRegisterLogic;
 use App\Livewire\Pos\PosLoginPage;
+use App\Livewire\Pos\PosPage;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -21,6 +22,4 @@ Route::get('/', function () {
 
 // POS Routes
 Route::get('/pos/login', PosLoginPage::class)->name('pos.login');
-
-// Protected POS Routes (To be grouped later)
-// Route::get('/pos', PosPage::class)->middleware('auth');
+Route::get('/pos', PosPage::class)->middleware('auth')->name('pos');
