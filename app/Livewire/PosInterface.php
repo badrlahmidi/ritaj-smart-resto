@@ -85,11 +85,14 @@ class PosInterface extends Component
         }
     }
 
-    public function sendOrder()
+    public function sendOrder(PrinterService $printer)
     {
         if (empty($this->cart)) return;
 
-        DB::transaction(function () {
+        // On capture l'UUID pour l'utiliser hors de la transaction
+        $orderUuid = null;
+
+        DB::transaction(function () use (&$orderUuid) {
             $table = Table::find($this->selectedTableId);
             
             // Create or Get Order
@@ -106,7 +109,13 @@ class PosInterface extends Component
                 $this->selectedTableOrderUuid = $order->uuid;
             } else {
                 $order = Order::find($table->current_order_uuid);
+                // Si une commande existait, on s'assure qu'elle repasse en "sent_to_kitchen" si elle était pending
+                if ($order->status === 'pending') {
+                    $order->update(['status' => 'sent_to_kitchen']);
+                }
             }
+            
+            $orderUuid = $order->uuid;
 
             // Add Items
             foreach ($this->cart as $item) {
@@ -125,14 +134,21 @@ class PosInterface extends Component
             $order->save();
         });
 
-        // Trigger PrinterService Logic here in future
+        // Trigger PrinterService Logic
+        if ($orderUuid) {
+            $order = Order::find($orderUuid);
+            $printed = $printer->printKitchenTicket($order);
+            
+            if (!$printed) {
+                 session()->flash('warning', 'Commande envoyée mais erreur impression (Vérifiez les logs)');
+            } else {
+                 session()->flash('success', 'Commande envoyée et imprimée !');
+            }
+        }
         
         $this->resetCart();
         $this->view = 'tables'; // Go back to table view
-        
-        // Optional: Flash message
-        session()->flash('success', 'Commande envoyée en cuisine !');
-                $this->dispatch('$refresh'); // Force Livewire to reload table statuses
+        $this->dispatch('$refresh'); // Force Livewire to reload table statuses
     }
 
     private function loadOrder($uuid)
