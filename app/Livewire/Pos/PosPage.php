@@ -3,6 +3,7 @@
 namespace App\Livewire\Pos;
 
 use App\Enums\OrderType;
+use App\Models\Area;
 use App\Models\Category;
 use App\Models\Order;
 use App\Models\Product;
@@ -18,6 +19,7 @@ class PosPage extends Component
     public $selectedCategoryId = null;
     public $orderType = 'dine_in'; 
     public $selectedTableId = null;
+    public $selectedAreaId = null; // New: For filtering map
     public $search = '';
     public $cart = []; 
 
@@ -25,6 +27,10 @@ class PosPage extends Component
     {
         $firstCategory = Category::where('is_active', true)->first();
         $this->selectedCategoryId = $firstCategory?->id;
+        
+        // Default area
+        $firstArea = Area::where('is_active', true)->first();
+        $this->selectedAreaId = $firstArea?->id;
     }
 
     #[Computed]
@@ -34,9 +40,17 @@ class PosPage extends Component
     }
 
     #[Computed]
+    public function areas()
+    {
+        return Area::where('is_active', true)->with('tables')->get();
+    }
+
+    #[Computed]
     public function tables()
     {
-        return Table::where('status', '!=', 'occupied')->get();
+        // Return tables for current area
+        if (!$this->selectedAreaId) return collect();
+        return Table::where('area_id', $this->selectedAreaId)->get();
     }
 
     #[Computed]
@@ -59,6 +73,16 @@ class PosPage extends Component
     {
         $this->selectedCategoryId = $id;
         $this->search = ''; 
+    }
+    
+    public function selectArea($id)
+    {
+        $this->selectedAreaId = $id;
+    }
+
+    public function selectTable($id)
+    {
+        $this->selectedTableId = $id;
     }
 
     public function setOrderType($type)
