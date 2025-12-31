@@ -3,7 +3,6 @@
 namespace App\Livewire;
 
 use App\Models\Order;
-use App\Services\OrderService;
 use App\Services\PrinterService;
 use Livewire\Component;
 
@@ -57,13 +56,13 @@ class CashRegisterLogic extends Component
         $order = $this->selectedOrder;
 
         // Mise à jour de la commande
+        // L'observer se déclenchera ici car le statut passe à 'paid'
+        // Si la commande n'a jamais été envoyée en cuisine (Vente directe), le stock sera déduit maintenant.
+        // Si elle a déjà été envoyée en cuisine, le flag is_stock_deducted bloquera la double déduction.
         $order->update([
             'status' => 'paid',
             'payment_method' => $this->paymentMethod,
         ]);
-
-        // 1. Déstockage automatique (Recettes & Produits Finis)
-        app(OrderService::class)->deductStockForOrder($order);
 
         // 2. Libérer la table
         if ($order->table) {
@@ -78,7 +77,7 @@ class CashRegisterLogic extends Component
         $this->amountTendered = 0;
         $this->change = 0;
         
-        session()->flash('success', 'Paiement enregistré, stock mis à jour et ticket imprimé !');
+        session()->flash('success', 'Paiement enregistré et ticket imprimé !');
         $this->dispatch('notify', 'Paiement OK');
     }
 
