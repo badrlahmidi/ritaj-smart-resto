@@ -37,7 +37,8 @@ return [
     
     // Configuration Imprimante (Multi-driver)
     'printer' => [
-        'driver' => env('PRINTER_DRIVER', 'network'), // Options: 'network', 'windows', 'dummy'
+        // Options: 'network', 'windows', 'file', 'dummy'
+        'driver' => env('PRINTER_DRIVER', 'file'), 
         
         'network' => [
             'ip' => env('PRINTER_KITCHEN_IP', '192.168.1.200'),
@@ -45,7 +46,6 @@ return [
         ],
         
         'windows' => [
-            // Nom de l'imprimante partagée ou locale (ex: "Microsoft Print to PDF" ou "EPSON_TM_T20")
             'name' => env('PRINTER_NAME', 'Microsoft Print to PDF'), 
         ],
     ],
