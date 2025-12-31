@@ -21,27 +21,51 @@ class ProductResource extends Resource
     {
         return $form
             ->schema([
-                Forms\Components\Section::make()
+                Forms\Components\Group::make()
                     ->schema([
-                        Forms\Components\Select::make('category_id')
-                            ->relationship('category', 'name')
-                            ->required(),
-                        Forms\Components\TextInput::make('name')
-                            ->required()
-                            ->maxLength(255),
-                        Forms\Components\TextInput::make('price')
-                            ->required()
-                            ->numeric()
-                            ->prefix('DH'),
-                        Forms\Components\FileUpload::make('image_url')
-                            ->label('Photo')
-                            ->image()
-                            ->imageEditor()
-                            ->directory('products'),
-                        Forms\Components\Toggle::make('is_available')
-                            ->required(),
-                    ])->columns(2)
-            ]);
+                        Forms\Components\Section::make('Détails Produit')
+                            ->schema([
+                                Forms\Components\Select::make('category_id')
+                                    ->relationship('category', 'name')
+                                    ->required(),
+                                Forms\Components\TextInput::make('name')
+                                    ->required()
+                                    ->maxLength(255),
+                                Forms\Components\TextInput::make('price')
+                                    ->required()
+                                    ->numeric()
+                                    ->prefix('DH'),
+                                Forms\Components\FileUpload::make('image_url')
+                                    ->label('Photo')
+                                    ->image()
+                                    ->imageEditor()
+                                    ->directory('products'),
+                                Forms\Components\Toggle::make('is_available')
+                                    ->required()
+                                    ->default(true),
+                            ])->columns(2),
+                    ])->columnSpan(2),
+
+                Forms\Components\Group::make()
+                    ->schema([
+                        Forms\Components\Section::make('Stock')
+                            ->schema([
+                                Forms\Components\Toggle::make('track_stock')
+                                    ->label('Suivi de stock')
+                                    ->reactive(),
+                                Forms\Components\TextInput::make('stock_quantity')
+                                    ->label('Quantité en stock')
+                                    ->numeric()
+                                    ->default(0)
+                                    ->hidden(fn (Forms\Get $get) => !$get('track_stock')),
+                                Forms\Components\TextInput::make('alert_threshold')
+                                    ->label('Seuil d\'alerte')
+                                    ->numeric()
+                                    ->default(5)
+                                    ->hidden(fn (Forms\Get $get) => !$get('track_stock')),
+                            ]),
+                    ])->columnSpan(1),
+            ])->columns(3);
     }
 
     public static function table(Table $table): Table
@@ -51,23 +75,27 @@ class ProductResource extends Resource
                 Tables\Columns\ImageColumn::make('image_url')
                     ->label('Photo')
                     ->square(),
-                Tables\Columns\TextColumn::make('category.name')
-                    ->numeric()
-                    ->sortable(),
                 Tables\Columns\TextColumn::make('name')
-                    ->searchable(),
+                    ->searchable()
+                    ->sortable(),
+                Tables\Columns\TextColumn::make('category.name')
+                    ->sortable(),
                 Tables\Columns\TextColumn::make('price')
                     ->money('mad')
                     ->sortable(),
                 Tables\Columns\IconColumn::make('is_available')
                     ->boolean(),
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('stock_quantity')
+                    ->label('Stock')
+                    ->color(fn (Product $record) => $record->track_stock && $record->stock_quantity <= $record->alert_threshold ? 'danger' : 'success')
+                    ->formatStateUsing(fn (Product $record) => $record->track_stock ? $record->stock_quantity : '-')
+                    ->sortable(),
             ])
             ->filters([
-                //
+                Tables\Filters\TernaryFilter::make('is_available'),
+                Tables\Filters\Filter::make('low_stock')
+                    ->query(fn ($query) => $query->where('track_stock', true)->whereColumn('stock_quantity', '<=', 'alert_threshold'))
+                    ->label('Stock Faible'),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
