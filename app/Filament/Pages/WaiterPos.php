@@ -11,14 +11,13 @@ class WaiterPos extends Page
     protected static ?string $navigationLabel = 'Mode Serveur (POS)';
     protected static ?string $title = 'Prise de commande';
     protected static ?string $slug = 'pos';
-    protected static ?string $navigationGroup = 'Opérations';
+    protected static ?string $navigationGroup = 'Exploitation'; // Updated group
+    protected static string $layout = 'filament-panels::components.layout.simple'; // Use simple layout (no sidebar)
 
     protected static string $view = 'filament.pages.waiter-pos';
 
-    // Masquer le header par défaut pour gagner de la place sur mobile
-    public ?string $heading = '';
-    
-    // Layout pleine largeur
+    public ?string $heading = ''; // Remove default heading
+
     public function getMaxContentWidth(): \Filament\Support\Enums\MaxWidth | string | null
     {
         return 'full';
