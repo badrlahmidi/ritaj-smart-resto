@@ -13,6 +13,41 @@ class PosLoginPage extends Component
 {
     public $pin = '';
     public $error = '';
+    public $selectedUser = null;
+    public $showPinPad = false;
+
+    public function mount()
+    {
+        // Logout if coming to login page
+        if(auth()->check()) {
+            auth()->logout();
+        }
+    }
+
+    public function getUsersProperty()
+    {
+        // Only show users with appropriate roles and active status
+        return User::where('is_active', true)
+            ->whereIn('role', ['waiter', 'cashier', 'manager', 'kitchen'])
+            ->get();
+    }
+
+    public function selectUser($userId)
+    {
+        $this->selectedUser = User::find($userId);
+        if ($this->selectedUser) {
+            $this->showPinPad = true;
+            $this->pin = '';
+            $this->error = '';
+        }
+    }
+
+    public function closePinPad()
+    {
+        $this->showPinPad = false;
+        $this->selectedUser = null;
+        $this->pin = '';
+    }
 
     public function append($number)
     {
@@ -40,20 +75,16 @@ class PosLoginPage extends Component
 
     public function login()
     {
-        $users = User::whereNotNull('pin_code')->get();
-        
-        foreach ($users as $user) {
-            if (Hash::check($this->pin, $user->pin_code)) {
-                Auth::login($user);
-                
-                // Redirection basée sur le rôle
-                if ($user->role === 'kitchen') {
-                    // return redirect()->route('kitchen.display'); // Future route
-                    return redirect()->to('/admin'); // Fallback for now
-                }
-                
-                return redirect()->route('pos'); // Page POS principale
+        if (!$this->selectedUser) return;
+
+        if ($this->selectedUser->checkPin($this->pin)) {
+            Auth::login($this->selectedUser);
+            
+            if ($this->selectedUser->role === 'kitchen') {
+                return redirect()->to('/admin'); // Placeholder for kitchen view
             }
+            
+            return redirect()->route('pos');
         }
 
         $this->error = 'Code PIN incorrect';
