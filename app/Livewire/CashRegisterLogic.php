@@ -3,6 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Order;
+use App\Services\OrderService;
 use App\Services\PrinterService;
 use Livewire\Component;
 
@@ -17,7 +18,6 @@ class CashRegisterLogic extends Component
 
     public function getActiveOrdersProperty()
     {
-        // On affiche les commandes "ready" ou "sent_to_kitchen" non payées
         return Order::query()
             ->whereIn('status', ['sent_to_kitchen', 'ready', 'pending'])
             ->with(['table', 'waiter'])
@@ -62,12 +62,15 @@ class CashRegisterLogic extends Component
             'payment_method' => $this->paymentMethod,
         ]);
 
-        // Libérer la table
+        // 1. Déstockage automatique (Recettes & Produits Finis)
+        app(OrderService::class)->deductStockForOrder($order);
+
+        // 2. Libérer la table
         if ($order->table) {
             $order->table->update(['current_order_uuid' => null]);
         }
 
-        // Impression Ticket Caisse
+        // 3. Impression Ticket Caisse
         app(PrinterService::class)->printBill($order);
 
         // Reset
@@ -75,7 +78,7 @@ class CashRegisterLogic extends Component
         $this->amountTendered = 0;
         $this->change = 0;
         
-        session()->flash('success', 'Paiement enregistré et ticket imprimé !');
+        session()->flash('success', 'Paiement enregistré, stock mis à jour et ticket imprimé !');
         $this->dispatch('notify', 'Paiement OK');
     }
 
