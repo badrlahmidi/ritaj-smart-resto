@@ -7,6 +7,7 @@ use App\Models\Ingredient;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Schema;
 
 class StatsOverviewWidget extends BaseWidget
 {
@@ -38,8 +39,20 @@ class StatsOverviewWidget extends BaseWidget
         // Commandes Ouvertes (Open Orders)
         $openOrders = Order::whereIn('status', ['pending', 'in_progress', 'served'])->count();
 
-        // Stock Alerts
-        $lowStockIngredients = Ingredient::whereColumn('current_stock', '<=', 'min_stock_alert')->count();
+        // Stock Alerts - FIX: Use correct column names from migration
+        // 'stock_quantity' instead of 'current_stock'
+        // 'alert_threshold' instead of 'min_stock_alert'
+        
+        $lowStockIngredients = 0;
+        
+        try {
+            // Vérification basique pour éviter le crash si la table n'existe pas encore complètement
+            if (Schema::hasTable('ingredients')) {
+                 $lowStockIngredients = Ingredient::whereColumn('stock_quantity', '<=', 'alert_threshold')->count();
+            }
+        } catch (\Exception $e) {
+            // Silently fail or log if needed
+        }
 
         return [
             Stat::make('Chiffre d\'Affaires (J)', number_format($revenueToday, 2) . ' DH')
