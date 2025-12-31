@@ -16,8 +16,8 @@
          <span x-text="notification.message"></span>
     </div>
     
-    <!-- LEFT: MENU & PRODUCTS (65%) -->
-    <div class="flex-1 flex flex-col h-full overflow-hidden">
+    <!-- LEFT: MENU & PRODUCTS (60%) -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden border-r border-gray-200">
         
         <!-- HEADER: CATEGORIES -->
         <div class="bg-white shadow-sm z-10 p-2">
@@ -78,8 +78,8 @@
         </div>
     </div>
 
-    <!-- RIGHT: CART (35%) -->
-    <div class="w-96 bg-white shadow-xl flex flex-col h-full z-20 border-l border-gray-200">
+    <!-- RIGHT: CART & TABLE SELECTION (40%) -->
+    <div class="w-[450px] bg-white shadow-xl flex flex-col h-full z-20 border-l border-gray-200">
         
         <!-- ORDER TYPE SELECTOR -->
         <div class="p-3 bg-gray-50 border-b border-gray-200 grid grid-cols-3 gap-1">
@@ -96,43 +96,78 @@
             @endforeach
         </div>
 
-        <!-- TABLE SELECTOR (Only for Dine-in) -->
+        <!-- VISUAL TABLE SELECTOR (Only for Dine-in) -->
         @if($orderType === \App\Enums\OrderType::DINE_IN->value)
-            <div class="p-3 border-b border-gray-200 bg-blue-50">
-                <label class="text-xs font-bold text-blue-800 uppercase mb-1 block">Sélectionner une table</label>
-                <select wire:model.live="selectedTableId" class="w-full rounded-lg border-blue-300 text-sm font-bold bg-white focus:ring-blue-500">
-                    <option value="">-- Choisir Table --</option>
-                    @foreach($this->tables as $table)
-                        <option value="{{ $table->id }}">{{ $table->name }} ({{ $table->capacity }} pers)</option>
+            <div class="flex-1 flex flex-col bg-gray-100 border-b border-gray-200 min-h-[300px] overflow-hidden">
+                <!-- Areas Tabs -->
+                <div class="flex overflow-x-auto bg-white border-b p-1">
+                    @foreach($this->areas as $area)
+                        <button 
+                            wire:click="selectArea({{ $area->id }})"
+                            class="px-4 py-2 text-sm font-bold whitespace-nowrap rounded-lg mr-1 transition-colors
+                            {{ $selectedAreaId === $area->id ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200' }}"
+                        >
+                            {{ $area->name }}
+                        </button>
                     @endforeach
-                </select>
+                </div>
+
+                <!-- Tables Grid -->
+                <div class="flex-1 p-3 overflow-y-auto bg-gray-200">
+                    <div class="grid grid-cols-4 gap-3">
+                        @foreach($this->tables as $table)
+                            <button 
+                                wire:click="selectTable({{ $table->id }})"
+                                class="aspect-square rounded-xl flex flex-col items-center justify-center shadow-sm border-2 transition-all relative
+                                {{ $selectedTableId === $table->id 
+                                    ? 'border-blue-500 bg-blue-50 scale-105 ring-2 ring-blue-200' 
+                                    : ($table->status === 'occupied' 
+                                        ? 'border-red-400 bg-red-100 opacity-90' 
+                                        : 'border-white bg-white hover:border-gray-300') }}"
+                            >
+                                <span class="text-lg font-bold {{ $selectedTableId === $table->id ? 'text-blue-700' : 'text-gray-700' }}">
+                                    {{ $table->name }}
+                                </span>
+                                <span class="text-xs text-gray-400">{{ $table->capacity }}p</span>
+                                
+                                @if($table->status === 'occupied')
+                                    <div class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                                @endif
+                            </button>
+                        @endforeach
+                    </div>
+                </div>
+                
+                @if($selectedTableId)
+                    <div class="bg-blue-600 text-white text-center py-1 text-xs font-bold uppercase tracking-wider">
+                        Table Sélectionnée : {{ \App\Models\Table::find($selectedTableId)?->name }}
+                    </div>
+                @endif
             </div>
         @endif
 
-        <!-- CART ITEMS -->
-        <div class="flex-1 overflow-y-auto p-4 space-y-3">
+        <!-- CART ITEMS LIST (Compact) -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-2 bg-white">
+            <h3 class="text-xs font-bold text-gray-400 uppercase border-b pb-1 mb-2">Commande en cours</h3>
             @forelse($cart as $id => $item)
-                <div class="flex items-center justify-between bg-white border border-gray-100 rounded-xl p-2 shadow-sm">
+                <div class="flex items-center justify-between group">
                     <div class="flex-1">
-                        <h4 class="font-bold text-sm text-gray-800">{{ $item['name'] }}</h4>
-                        <div class="text-xs text-gray-500">{{ number_format($item['price'], 2) }} DH</div>
+                        <div class="font-bold text-sm text-gray-800">{{ $item['name'] }}</div>
+                        <div class="text-xs text-gray-500">{{ number_format($item['price'], 2) }}</div>
                     </div>
                     
-                    <div class="flex items-center space-x-3 bg-gray-100 rounded-lg p-1">
-                        <button wire:click="updateQuantity({{ $id }}, -1)" class="w-8 h-8 flex items-center justify-center bg-white rounded shadow text-red-500 font-bold hover:bg-red-50">-</button>
-                        <span class="font-bold text-gray-800 w-4 text-center">{{ $item['qty'] }}</span>
-                        <button wire:click="updateQuantity({{ $id }}, 1)" class="w-8 h-8 flex items-center justify-center bg-white rounded shadow text-green-500 font-bold hover:bg-green-50">+</button>
+                    <div class="flex items-center space-x-2">
+                        <button wire:click="updateQuantity({{ $id }}, -1)" class="w-6 h-6 flex items-center justify-center bg-gray-100 rounded text-red-500 font-bold hover:bg-red-50">-</button>
+                        <span class="font-bold text-sm w-4 text-center">{{ $item['qty'] }}</span>
+                        <button wire:click="updateQuantity({{ $id }}, 1)" class="w-6 h-6 flex items-center justify-center bg-gray-100 rounded text-green-500 font-bold hover:bg-green-50">+</button>
                     </div>
 
-                    <div class="ml-3 font-bold text-gray-900 text-right w-16">
-                        {{ number_format($item['price'] * $item['qty'], 2) }}
+                    <div class="ml-3 font-bold text-sm w-14 text-right">
+                        {{ number_format($item['price'] * $item['qty'], 0) }}
                     </div>
                 </div>
             @empty
-                <div class="h-full flex flex-col items-center justify-center text-gray-300">
-                    <svg class="w-16 h-16 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
-                    <p>Panier vide</p>
-                </div>
+                <div class="text-center py-4 text-gray-400 text-sm italic">Aucun article</div>
             @endforelse
         </div>
 
