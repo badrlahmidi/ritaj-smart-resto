@@ -16,6 +16,7 @@ class Order extends Model
     protected $keyType = 'string';
 
     protected $fillable = [
+        'local_id', // Added for Sync
         'table_id',
         'waiter_id',
         'status',
