@@ -132,6 +132,7 @@ class PosInterface extends Component
         
         // Optional: Flash message
         session()->flash('success', 'Commande envoyée en cuisine !');
+                $this->dispatch('$refresh'); // Force Livewire to reload table statuses
     }
 
     private function loadOrder($uuid)
