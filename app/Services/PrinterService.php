@@ -4,39 +4,138 @@ namespace App\Services;
 
 use App\Models\Order;
 use Illuminate\Support\Facades\Log;
+use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
+use Mike42\Escpos\Printer;
 
 class PrinterService
 {
-    // Placeholder for Mike42\Escpos dependencies
-    
-    public function printKitchenTicket(Order $order)
+    protected ?string $kitchenIp;
+    protected ?int $kitchenPort;
+
+    public function __construct()
     {
-        // 1. Filter items that haven't been printed yet
+        // On suppose que ces configs sont dans config/services.php ou .env
+        $this->kitchenIp = config('services.printer.kitchen_ip', '192.168.1.200');
+        $this->kitchenPort = config('services.printer.kitchen_port', 9100);
+    }
+
+    /**
+     * Imprime un ticket pour la cuisine avec les nouveaux items
+     */
+    public function printKitchenTicket(Order $order): bool
+    {
+        // 1. Filtrer les items non imprimés
         $newItems = $order->items()->where('printed_kitchen', false)->get();
         
         if ($newItems->isEmpty()) {
-            return;
+            return false;
         }
 
         try {
-            // Logic to connect to printer IP (config('printer.kitchen_ip'))
-            // Print Header: "Table: " . $order->table->name
-            // Print Body: Iterate $newItems
+            // Connexion imprimante
+            $connector = new NetworkPrintConnector($this->kitchenIp, $this->kitchenPort);
+            $printer = new Printer($connector);
+
+            // Header
+            $printer->setJustification(Printer::JUSTIFY_CENTER);
+            $printer->setTextSize(2, 2);
+            $printer->text("CUISINE\n");
+            $printer->setTextSize(1, 1);
+            $printer->feed();
             
-            // Mark items as printed
+            $printer->setJustification(Printer::JUSTIFY_LEFT);
+            $printer->text("Table: " . ($order->table?->name ?? 'N/A') . "\n");
+            $printer->text("Serveur: " . ($order->waiter?->name ?? 'N/A') . "\n");
+            $printer->text("Heure: " . now()->format('H:i') . "\n");
+            $printer->text("--------------------------------\n");
+
+            // Body
+            foreach ($newItems as $item) {
+                $printer->setTextSize(2, 1); // Largeur double pour lisibilité
+                $qty = str_pad($item->quantity, 2, ' ', STR_PAD_LEFT);
+                $name = $item->product?->name ?? 'Article inconnu';
+                
+                $printer->text("{$qty} x {$name}\n");
+                
+                if ($item->notes) {
+                    $printer->setTextSize(1, 1);
+                    $printer->text("   NOTE: {$item->notes}\n");
+                }
+            }
+            $printer->text("--------------------------------\n");
+            $printer->feed(3);
+            $printer->cut();
+            $printer->close();
+
+            // Marquer comme imprimé
             foreach ($newItems as $item) {
                 $item->update(['printed_kitchen' => true]);
             }
             
-            Log::info("Kitchen ticket printed for Order {$order->uuid}");
+            // Mettre à jour le statut de la commande si nécessaire
+            if ($order->status === 'pending') {
+                $order->update(['status' => 'sent_to_kitchen']);
+            }
+
+            return true;
             
         } catch (\Exception $e) {
-            Log::error("Printer Error: " . $e->getMessage());
+            Log::error("Printer Error (Kitchen): " . $e->getMessage());
+            return false;
         }
     }
 
-    public function printBill(Order $order)
+    /**
+     * Imprime l'addition client (Ticket de caisse)
+     */
+    public function printBill(Order $order): bool
     {
-        // Logic for Z-ticket or Customer Bill
+        try {
+            // Pour l'addition, on imprime souvent sur une imprimante locale USB ou une autre IP
+            // Ici on utilise la même config pour l'exemple, à adapter
+            $connector = new NetworkPrintConnector($this->kitchenIp, $this->kitchenPort); 
+            $printer = new Printer($connector);
+
+            $printer->setJustification(Printer::JUSTIFY_CENTER);
+            $printer->setTextSize(2, 2);
+            $printer->text("RITAJ RESTO\n");
+            $printer->setTextSize(1, 1);
+            $printer->text("123, Avenue Mohamed VI\n");
+            $printer->text("Marrakech\n");
+            $printer->feed();
+
+            $printer->setJustification(Printer::JUSTIFY_LEFT);
+            $printer->text("Ticket: #" . $order->local_id . "\n");
+            $printer->text("Table: " . ($order->table?->name ?? 'N/A') . "\n");
+            $printer->text("Date: " . now()->format('d/m/Y H:i') . "\n");
+            $printer->text("--------------------------------\n");
+
+            // Items
+            $printer->setJustification(Printer::JUSTIFY_LEFT);
+            foreach ($order->items as $item) {
+                $lineTotal = number_format($item->total_price, 2);
+                $name = substr($item->product?->name ?? '', 0, 20); // Tronquer nom
+                $printer->text(sprintf("%-2s x %-20s %8s\n", $item->quantity, $name, $lineTotal));
+            }
+
+            $printer->text("--------------------------------\n");
+            $printer->setJustification(Printer::JUSTIFY_RIGHT);
+            $printer->setTextSize(2, 1);
+            $printer->text("TOTAL: " . number_format($order->total_amount, 2) . " DH\n");
+            $printer->setTextSize(1, 1);
+            $printer->feed(2);
+            
+            $printer->setJustification(Printer::JUSTIFY_CENTER);
+            $printer->text("Merci de votre visite !\n");
+            $printer->feed(3);
+            $printer->cut();
+            $printer->close();
+
+            return true;
+
+        } catch (\Exception $e) {
+            Log::error("Printer Error (Bill): " . $e->getMessage());
+            return false;
+        }
     }
 }
