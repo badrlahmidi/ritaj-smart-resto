@@ -29,8 +29,8 @@
                     <!-- Ticket Header -->
                     <div class="bg-white p-3 border-b flex justify-between items-start">
                         <div>
-                            <h2 class="text-xl font-black text-gray-900">{{ $order->table->name }}</h2>
-                            <p class="text-xs text-gray-500 font-bold uppercase">{{ $order->server->name }}</p>
+                            <h2 class="text-xl font-black text-gray-900">{{ $order->table?->name ?? $order->type->getLabel() }}</h2>
+                            <p class="text-xs text-gray-500 font-bold uppercase">{{ $order->server?->name ?? 'System' }}</p>
                         </div>
                         <div class="text-right">
                             <span class="text-lg font-bold text-gray-800">#{{ $order->local_id }}</span>
