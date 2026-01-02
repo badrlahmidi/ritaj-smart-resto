@@ -78,7 +78,7 @@
                         >
                             <div class="absolute inset-0 z-0 opacity-10 group-hover:opacity-20 transition-opacity">
                                  @if($product->image_url)
-                                    <img src="{{ \Illuminate\Support\Facades\Storage::url($product->image_url) }}" class="w-full h-full object-cover">
+                                    <img src="{{ \Illuminate\Support\Facades\Storage::url($product->image_url) }}" class="w-full h-full object-cover" loading="lazy">
                                  @else
                                     <div class="w-full h-full bg-gray-300"></div>
                                  @endif

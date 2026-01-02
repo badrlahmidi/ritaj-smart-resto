@@ -34,7 +34,7 @@ class PosOrderPage extends Component
     public function mount(Table $table)
     {
         $this->table = $table;
-        $this->selectedCategoryId = Category::where('is_active', true)->first()?->id;
+        $this->selectedCategoryId = null; // Afficher TOUT par défaut
         
         // Load existing order if table is occupied
         if ($table->status === 'occupied' && $table->current_order_uuid) {
@@ -73,7 +73,7 @@ class PosOrderPage extends Component
     public function products()
     {
         $query = Product::where('is_available', true)
-            ->with(['optionGroups.options']); // Eager load options
+            ->with(['optionGroups.options', 'category']); // Charge tout en une fois
 
         if ($this->selectedCategoryId) {
             $query->where('category_id', $this->selectedCategoryId);
@@ -81,6 +81,12 @@ class PosOrderPage extends Component
 
         if ($this->search) {
             $query->where('name', 'like', '%' . $this->search . '%');
+        } else {
+            // Si pas de recherche, on limite pour éviter de tuer le DOM
+            // Sauf si une catégorie est sélectionnée (souvent moins de 50 produits par catégorie)
+            if (!$this->selectedCategoryId) {
+                $query->limit(50);
+            }
         }
 
         return $query->get();
