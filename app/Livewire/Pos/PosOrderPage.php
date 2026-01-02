@@ -55,7 +55,7 @@ class PosOrderPage extends Component
                 'item_id' => $item->id, // Existing DB ID
                 'product_id' => $item->product_id,
                 'name' => $item->product->name,
-                'price' => $item->price,
+                'price' => $item->unit_price,
                 'qty' => $item->quantity,
                 'options' => $item->options ?? [],
                 'status' => $item->status, // 'sent', 'served'
@@ -182,24 +182,24 @@ class PosOrderPage extends Component
         DB::transaction(function () use ($pendingItems) {
             // 1. Create or Update Order
             $order = Order::updateOrCreate(
-                ['id' => $this->currentOrderId],
+                ['uuid' => $this->currentOrderId],
                 [
                     'table_id' => $this->table->id,
                     'user_id' => auth()->id(),
-                    'status' => 'in_progress',
+                    'status' => 'sent_to_kitchen',
                     'type' => $this->orderType,
                     'total_amount' => collect($this->cart)->sum(fn($i) => $i['price'] * $i['qty']),
                 ]
             );
-            $this->currentOrderId = $order->id;
+            $this->currentOrderId = $order->uuid;
 
             // 2. Save Items
             foreach ($pendingItems as $index => $item) {
                 $orderItem = $order->items()->create([
                     'product_id' => $item['product_id'],
                     'quantity' => $item['qty'],
-                    'price' => $item['price'], // Unit price including options
-                    'total' => $item['price'] * $item['qty'],
+                    'unit_price' => $item['price'], // Unit price including options
+                    'total_price' => $item['price'] * $item['qty'],
                     'options' => $item['options'],
                     'status' => 'sent',
                 ]);
@@ -212,7 +212,7 @@ class PosOrderPage extends Component
             // 3. Update Table
             $this->table->update([
                 'status' => 'occupied',
-                'current_order_uuid' => $order->id
+                'current_order_uuid' => $order->uuid
             ]);
         });
 

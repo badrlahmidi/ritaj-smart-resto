@@ -90,7 +90,7 @@ class PosPaymentPage extends Component
         DB::transaction(function () {
             // 1. Create Payment
             Payment::create([
-                'order_id' => $this->order->id,
+                'order_uuid' => $this->order->uuid,
                 'amount' => $this->amountToPay,
                 'payment_method' => $this->paymentMethod,
                 'amount_tendered' => $this->paymentMethod === 'cash' ? $this->amountTendered : null,

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasStock;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Product extends Model
 {
-    use HasFactory;
+    use HasFactory, HasStock;
 
     protected $fillable = [
         'name',
@@ -19,13 +20,19 @@ class Product extends Model
         'cost',
         'category_id',
         'is_available',
-        'has_stock',
+        'has_stock', // If true, we deduct this product's stock directly (e.g. Can)
         'stock_quantity',
         'min_stock_alert',
         'image_url',
         'kitchen_station',
         'is_combo',
     ];
+
+    public function ingredients(): BelongsToMany
+    {
+        return $this->belongsToMany(Ingredient::class, 'product_ingredient')
+                    ->withPivot(['quantity', 'wastage_percent']);
+    }
 
     public function category(): BelongsTo
     {

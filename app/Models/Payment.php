@@ -11,7 +11,7 @@ class Payment extends Model
     use HasFactory;
 
     protected $fillable = [
-        'order_id',
+        'order_uuid',
         'amount',
         'payment_method',
         'amount_tendered',
@@ -22,7 +22,7 @@ class Payment extends Model
 
     public function order(): BelongsTo
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(Order::class, 'order_uuid', 'uuid');
     }
 
     public function cashier(): BelongsTo

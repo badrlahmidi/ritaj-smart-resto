@@ -13,19 +13,10 @@ return new class extends Migration
             $table->decimal('price_takeaway', 10, 2)->nullable()->after('price');
             $table->decimal('price_delivery', 10, 2)->nullable()->after('price_takeaway');
         });
-        
-        Schema::table('orders', function (Blueprint $table) {
-            // Ajout du type sur la commande (défaut : À table)
-            $table->string('type')->default('dine_in')->after('status'); 
-        });
     }
 
     public function down(): void
     {
-        Schema::table('orders', function (Blueprint $table) {
-            $table->dropColumn('type');
-        });
-
         Schema::table('products', function (Blueprint $table) {
             $table->dropColumn(['price_takeaway', 'price_delivery']);
         });

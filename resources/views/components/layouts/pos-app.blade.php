@@ -4,7 +4,6 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     <title>POS - Ritaj Smart Resto</title>
-    @filamentStyles
     @vite('resources/css/app.css')
     <style>
         /* Hide scrollbar for Chrome, Safari and Opera */
@@ -20,8 +19,7 @@
 </head>
 <body class="h-full overflow-hidden">
     {{ $slot }}
-    
-    @filamentScripts
+    @livewireScripts
     @vite('resources/js/app.js')
 </body>
 </html>

@@ -12,95 +12,137 @@ use Mike42\Escpos\Printer;
 
 class PrinterService
 {
-    public function getConnector()
+    public function getConnector(\App\Models\Printer $printerModel)
     {
-        $driver = config('services.printer.driver', 'dummy');
-
         try {
-            switch ($driver) {
+            switch ($printerModel->type) {
                 case 'network':
-                    $ip = config('services.printer.network.ip');
-                    $port = config('services.printer.network.port', 9100);
-                    return new NetworkPrintConnector($ip, $port);
+                    return new NetworkPrintConnector($printerModel->path, $printerModel->port ?? 9100);
                 
                 case 'windows':
-                    $name = config('services.printer.windows.name');
-                    return new WindowsPrintConnector($name);
+                    // 'path' should contain the Share Name (e.g., "KitchenPrinter") or LPT/COM port
+                    return new WindowsPrintConnector($printerModel->path);
 
-                case 'file':
-                    // Écrit dans storage/app/printer_output.txt (Idéal pour test local Windows)
-                    $path = storage_path('app/printer_output.txt');
-                    return new FilePrintConnector($path);
-                
                 case 'dummy':
                 default:
                     return new DummyPrintConnector();
             }
         } catch (\Exception $e) {
-            Log::error("Printer Connection Failed ($driver): " . $e->getMessage());
+            Log::error("Printer Connection Failed ({$printerModel->name}): " . $e->getMessage());
             return null;
         }
     }
 
     public function printKitchenTicket(Order $order): bool
     {
-        $newItems = $order->items()->where('printed_kitchen', false)->get();
+        // 1. Get all items that need printing
+        $newItems = $order->items()
+            ->where('printed_kitchen', false)
+            ->where('status', '!=', 'pending') // Only sent items
+            ->with('product')
+            ->get();
         
         if ($newItems->isEmpty()) {
-            Log::info("Order {$order->uuid}: No new items to print.");
-            return true; // Rien à imprimer, ce n'est pas une erreur
+            return true;
         }
 
-        try {
-            $connector = $this->getConnector();
-            if (!$connector) {
-                Log::error("Order {$order->uuid}: No connector available.");
-                return false;
-            }
+        // 2. Get all active printers
+        $printers = \App\Models\Printer::where('is_active', true)->get();
+        $allSuccess = true;
 
-            $printer = new Printer($connector);
-
-            // Header
-            $printer->setJustification(Printer::JUSTIFY_CENTER);
-            $printer->setTextSize(2, 2);
-            $printer->text("CUISINE\n");
-            $printer->setTextSize(1, 1);
-            $printer->feed();
-            
-            $printer->setJustification(Printer::JUSTIFY_LEFT);
-            $printer->text("Table: " . ($order->table?->name ?? 'N/A') . "\n");
-            $printer->text("Serveur: " . ($order->waiter?->name ?? 'N/A') . "\n");
-            $printer->text("Heure: " . now()->format('H:i') . "\n");
-            $printer->text("--------------------------------\n");
-
-            // Body
-            foreach ($newItems as $item) {
-                $printer->setTextSize(2, 1);
-                $qty = str_pad($item->quantity, 2, ' ', STR_PAD_LEFT);
-                $name = $item->product?->name ?? 'Article inconnu';
-                $printer->text("{$qty} x {$name}\n");
-                
-                if ($item->notes) {
-                    $printer->setTextSize(1, 1);
-                    $printer->text("   NOTE: {$item->notes}\n");
-                }
-            }
-            $printer->text("--------------------------------\n");
-            $printer->feed(3);
-            $printer->cut();
-            $printer->close();
-
-            // Marquer comme imprimé
-            foreach ($newItems as $item) {
-                $item->update(['printed_kitchen' => true]);
-            }
-            
-            return true;
-            
-        } catch (\Exception $e) {
-            Log::error("Printer Error (Kitchen): " . $e->getMessage());
+        if ($printers->isEmpty()) {
+            Log::warning("No active printers found.");
             return false;
         }
+
+        foreach ($printers as $printerModel) {
+            // 3. Filter items for this printer's stations
+            // If station_tags is null/empty, maybe it's a master printer? 
+            // For now, assume strict mapping. If empty, print nothing or everything? 
+            // Let's assume strict: printer MUST have tags.
+            $printerStations = $printerModel->station_tags ?? [];
+            
+            $itemsForThisPrinter = $newItems->filter(function ($item) use ($printerStations) {
+                // If product has no specific station, default to 'kitchen'
+                $productStation = $item->product->kitchen_station ?? 'kitchen';
+                return in_array($productStation, $printerStations);
+            });
+
+            if ($itemsForThisPrinter->isEmpty()) {
+                continue;
+            }
+
+            // 4. Connect and Print
+            try {
+                $connector = $this->getConnector($printerModel);
+                if (!$connector) {
+                    $allSuccess = false;
+                    continue;
+                }
+
+                $printer = new Printer($connector);
+                
+                // --- TICKET LAYOUT ---
+                $printer->setJustification(Printer::JUSTIFY_CENTER);
+                $printer->setTextSize(2, 2);
+                $printer->text("COMMANDE\n");
+                $printer->setTextSize(1, 1);
+                $printer->text(strtoupper($printerModel->name) . "\n");
+                $printer->feed();
+                
+                $printer->setJustification(Printer::JUSTIFY_LEFT);
+                $printer->text("Table: " . ($order->table?->name ?? 'N/A') . "\n");
+                $printer->text("Svr: " . ($order->user?->name ?? 'N/A') . "\n"); // Fixed: user relation
+                $printer->text("Ref: #" . $order->local_id . "\n");
+                $printer->text("Date: " . now()->format('d/m H:i') . "\n");
+                $printer->text("--------------------------------\n");
+
+                foreach ($itemsForThisPrinter as $item) {
+                    $printer->setTextSize(2, 1);
+                    $qty = str_pad($item->quantity, 2, ' ', STR_PAD_LEFT);
+                    $name = substr($item->product?->name ?? 'Article ???', 0, 20); // Truncate for layout
+                    $printer->text("{$qty} {$name}\n");
+                    
+                    // Options
+                    if (!empty($item->options)) {
+                         $printer->setTextSize(1, 1);
+                         foreach ($item->options as $opt) {
+                             $printer->text("   + " . ($opt['name'] ?? 'Option') . "\n");
+                         }
+                    }
+
+                    // Notes
+                    if ($item->notes) {
+                        $printer->setTextSize(1, 1);
+                        $printer->setReverseColors(true); // Highlight note
+                        $printer->text(" NOTE: {$item->notes} \n");
+                        $printer->setReverseColors(false);
+                    }
+                }
+                
+                $printer->text("--------------------------------\n");
+                $printer->feed(3);
+                $printer->cut();
+                $printer->close();
+
+            } catch (\Exception $e) {
+                Log::error("Print Error ({$printerModel->name}): " . $e->getMessage());
+                $allSuccess = false; // Mark partial failure but continue to other printers
+            }
+        }
+
+        // 5. Mark items as printed ONLY if at least one printer worked (simplified logic)
+        // Ideally, we should track 'printed' per item per station, but for now:
+        if ($allSuccess) {
+            foreach ($newItems as $item) {
+                $item->update([
+                    'printed_kitchen' => true,
+                    'printed_at' => now()
+                ]);
+            }
+        }
+
+        return $allSuccess;
     }
 
     public function printBill(Order $order): bool

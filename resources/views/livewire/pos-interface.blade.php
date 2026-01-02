@@ -1,140 +1,253 @@
-<div class="h-full w-full flex flex-col lg:flex-row overflow-hidden bg-gray-50 dark:bg-gray-900">
+<div class="h-screen w-full flex flex-col lg:flex-row overflow-hidden bg-gray-100 dark:bg-gray-900 font-sans">
+    <style>
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
     
-    <!-- Zone 1: Catégories (Sidebar Gauche) -->
-    <div class="w-full lg:w-64 bg-white dark:bg-gray-800 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700 flex lg:flex-col overflow-x-auto lg:overflow-y-auto z-10 shadow-sm flex-shrink-0">
-        <div class="p-4 font-bold text-gray-500 uppercase text-xs hidden lg:block tracking-wider">Menu</div>
-        
-        <button wire:click="selectCategory(null)" 
-            class="flex-shrink-0 lg:w-full p-4 text-left hover:bg-amber-50 dark:hover:bg-gray-700 transition-colors border-l-4 {{ is_null($activeCategoryId) ? 'border-amber-500 bg-amber-50 dark:bg-gray-700 text-amber-700 dark:text-amber-400 font-bold' : 'border-transparent' }}">
-            <span class="block truncate">TOUT</span>
-        </button>
-
-        @foreach($categories as $category)
-            <button wire:click="selectCategory({{ $category->id }})" 
-                class="flex-shrink-0 lg:w-full p-4 text-left hover:bg-amber-50 dark:hover:bg-gray-700 transition-colors border-l-4 {{ $activeCategoryId === $category->id ? 'border-amber-500 bg-amber-50 dark:bg-gray-700 text-amber-700 dark:text-amber-400 font-bold' : 'border-transparent' }}">
-                <span class="block truncate">{{ $category->name }}</span>
+    <!-- LEFT SIDEBAR: CATEGORIES -->
+    <aside class="w-full lg:w-24 flex-shrink-0 bg-white dark:bg-gray-800 border-b lg:border-b-0 lg:border-r border-gray-200 dark:border-gray-700 flex lg:flex-col overflow-x-auto lg:overflow-y-auto z-20 shadow-md scrollbar-hide">
+        <div class="p-2 lg:p-4 flex flex-col gap-2 items-center justify-center">
+            <button wire:click="selectCategory(null)" 
+                class="w-16 h-16 lg:w-full lg:h-auto lg:aspect-square flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 border-2 
+                {{ is_null($activeCategoryId) 
+                    ? 'bg-amber-500 text-white border-amber-600 shadow-lg scale-105' 
+                    : 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-transparent hover:bg-amber-50 dark:hover:bg-gray-600 hover:text-amber-600' 
+                }}">
+                <x-heroicon-o-squares-2x2 class="w-6 h-6 lg:w-8 lg:h-8 mb-1" />
+                <span class="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-center leading-none">Tout</span>
             </button>
-        @endforeach
-    </div>
 
-    <!-- Zone 2: Grille Produits (Centre - Extensible) -->
-    <div class="flex-1 flex flex-col h-full overflow-hidden relative">
-        <!-- Barre de recherche -->
-        <div class="p-4 bg-gray-50 dark:bg-gray-900 z-10">
-             <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <x-heroicon-o-magnifying-glass class="h-5 w-5 text-gray-400" />
-                </div>
-                <input type="text" class="block w-full pl-10 pr-3 py-3 border-none rounded-xl shadow-sm ring-1 ring-gray-200 placeholder-gray-400 focus:ring-2 focus:ring-amber-500 bg-white dark:bg-gray-800 dark:ring-gray-700 sm:text-sm" placeholder="Recherche...">
-             </div>
+            @foreach($categories as $category)
+                <button wire:click="selectCategory({{ $category->id }})" 
+                    class="w-16 h-16 lg:w-full lg:h-auto lg:aspect-square flex flex-col items-center justify-center p-2 rounded-xl transition-all duration-200 border-2 group
+                    {{ $activeCategoryId === $category->id 
+                        ? 'bg-amber-500 text-white border-amber-600 shadow-lg scale-105' 
+                        : 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 border-transparent hover:bg-amber-50 dark:hover:bg-gray-600 hover:text-amber-600' 
+                    }}">
+                    <!-- Icon Placeholder (could be dynamic) -->
+                    <x-heroicon-o-tag class="w-5 h-5 lg:w-6 lg:h-6 mb-1 opacity-70 group-hover:opacity-100" />
+                    <span class="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-center leading-tight line-clamp-2">
+                        {{ $category->name }}
+                    </span>
+                </button>
+            @endforeach
         </div>
+    </aside>
 
-        <div class="flex-1 overflow-y-auto p-4 pt-0">
+    <!-- MIDDLE AREA: CONTENT (TABLES OR PRODUCTS) -->
+    <main class="flex-1 flex flex-col min-w-0 relative bg-gray-100 dark:bg-gray-900">
+        
+        <!-- Header / Search -->
+        <header class="h-16 flex items-center justify-between px-4 lg:px-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 shadow-sm z-10">
+            <div class="flex items-center gap-4">
+                @if($view === 'order')
+                    <button wire:click="$set('view', 'tables')" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 transition-colors" title="Retour aux tables">
+                        <x-heroicon-o-arrow-left class="w-6 h-6" />
+                    </button>
+                    <div class="flex flex-col">
+                        <h2 class="text-lg font-bold text-gray-800 dark:text-white leading-none">Table {{ $selectedTableId }}</h2>
+                        <span class="text-xs text-gray-500 dark:text-gray-400 font-medium">Commande en cours</span>
+                    </div>
+                @else
+                    <h2 class="text-xl font-black text-gray-800 dark:text-white tracking-tight">RITAJ POS</h2>
+                @endif
+            </div>
+
+            <!-- Search Bar -->
+            <div class="flex-1 max-w-md mx-4">
+                <div class="relative group">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <x-heroicon-o-magnifying-glass class="h-5 w-5 text-gray-400 group-focus-within:text-amber-500 transition-colors" />
+                    </div>
+                    <input type="text" 
+                        class="block w-full pl-10 pr-4 py-2 bg-gray-100 dark:bg-gray-700 border-transparent rounded-full text-sm focus:border-amber-500 focus:bg-white dark:focus:bg-gray-800 focus:ring-0 transition-all placeholder-gray-400 dark:text-white" 
+                        placeholder="Rechercher un article...">
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+                 <!-- Status Indicators or User Profile could go here -->
+                 <div class="h-8 w-8 rounded-full bg-amber-100 dark:bg-amber-900 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-xs border border-amber-200 dark:border-amber-700">
+                    {{ substr(Auth::user()->name ?? 'U', 0, 2) }}
+                 </div>
+            </div>
+        </header>
+
+        <!-- Scrollable Grid -->
+        <div class="flex-1 overflow-y-auto p-4 lg:p-6">
+            
             @if($view === 'tables')
-                <!-- Vue Plan de Salle -->
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                <!-- TABLE VIEW -->
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 lg:gap-6">
                     @foreach($tables as $table)
                         <button wire:click="selectTable({{ $table->id }})" 
-                            class="aspect-square relative group flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all hover:shadow-lg
-                            {{ $table->current_order_uuid ? 'border-red-200 bg-red-50 dark:bg-red-900/20 dark:border-red-800' : 'border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800' }}">
+                            class="group relative aspect-square flex flex-col items-center justify-center p-4 rounded-3xl border-2 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300
+                            {{ $table->current_order_uuid 
+                                ? 'bg-white dark:bg-gray-800 border-red-500/50' 
+                                : 'bg-white dark:bg-gray-800 border-emerald-500/50' 
+                            }}">
                             
-                            <div class="w-12 h-12 lg:w-16 lg:h-16 rounded-full flex items-center justify-center mb-2 
-                                 {{ $table->current_order_uuid ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600' }}">
-                                <span class="text-lg lg:text-xl font-bold">{{ $table->name }}</span>
+                            <!-- Status Badge -->
+                            <div class="absolute top-4 right-4 h-3 w-3 rounded-full {{ $table->current_order_uuid ? 'bg-red-500 animate-pulse' : 'bg-emerald-500' }}"></div>
+
+                            <div class="w-20 h-20 rounded-full flex items-center justify-center mb-3 shadow-inner 
+                                {{ $table->current_order_uuid 
+                                    ? 'bg-red-50 text-red-600 dark:bg-red-900/20' 
+                                    : 'bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20' 
+                                }}">
+                                <span class="text-3xl font-black">{{ $table->name }}</span>
                             </div>
                             
-                            <span class="text-xs lg:text-sm font-medium {{ $table->current_order_uuid ? 'text-red-700' : 'text-green-700' }}">
+                            <span class="text-sm font-bold uppercase tracking-wide {{ $table->current_order_uuid ? 'text-red-500' : 'text-emerald-500' }}">
                                 {{ $table->current_order_uuid ? 'Occupée' : 'Libre' }}
                             </span>
                         </button>
                     @endforeach
                 </div>
+
             @else
-                <!-- Vue Grille Produits -->
-                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 pb-20 lg:pb-0">
-                    @foreach($products as $product)
+                <!-- PRODUCT GRID -->
+                <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3 lg:gap-4 pb-20 lg:pb-0">
+                    @forelse($products as $product)
                         <button wire:click="addToCart({{ $product->id }})" 
-                            class="group relative flex flex-col bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-md hover:border-amber-300 transition-all overflow-hidden h-40 lg:h-48">
+                            class="group relative flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-amber-400 dark:hover:border-amber-500 transition-all duration-200 overflow-hidden h-48 lg:h-56">
                             
-                            <div class="h-20 lg:h-28 w-full bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
+                            <!-- Image Area -->
+                            <div class="h-28 lg:h-36 w-full bg-gray-50 dark:bg-gray-700 flex items-center justify-center overflow-hidden relative">
                                  @if($product->image_url)
-                                    <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
+                                    <img src="{{ $product->image_url }}" alt="{{ $product->name }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
                                  @else
-                                    <span class="text-gray-300 text-lg font-bold opacity-30">IMG</span>
+                                    <x-heroicon-o-photo class="w-12 h-12 text-gray-300 dark:text-gray-600" />
                                  @endif
+                                 
+                                 <!-- Price Tag Overlay -->
+                                 <div class="absolute bottom-2 right-2 bg-black/70 backdrop-blur-sm text-white px-2 py-1 rounded-lg text-xs font-bold shadow-sm">
+                                    {{ number_format($product->price, 2) }} <span class="text-[10px] font-normal">Dhs</span>
+                                 </div>
                             </div>
 
-                            <div class="flex-1 p-2 flex flex-col justify-between text-left">
-                                <h3 class="font-bold text-gray-800 dark:text-gray-100 text-xs lg:text-sm line-clamp-2 leading-tight">{{ $product->name }}</h3>
-                                <div class="mt-1 font-bold text-amber-600 text-xs lg:text-sm">{{ number_format($product->price, 2) }} Dhs</div>
+                            <!-- Content Area -->
+                            <div class="flex-1 p-3 flex flex-col justify-between text-left w-full">
+                                <h3 class="font-bold text-gray-800 dark:text-gray-100 text-sm leading-tight line-clamp-2 group-hover:text-amber-600 transition-colors">
+                                    {{ $product->name }}
+                                </h3>
                             </div>
                         </button>
-                    @endforeach
+                    @empty
+                        <div class="col-span-full flex flex-col items-center justify-center h-64 text-gray-400">
+                            <x-heroicon-o-face-frown class="w-16 h-16 mb-4 opacity-50" />
+                            <p class="text-lg font-medium">Aucun produit trouvé</p>
+                        </div>
+                    @endforelse
                 </div>
             @endif
         </div>
-    </div>
+    </main>
 
-    <!-- Zone 3: Panier (Droite - Fixe Desktop / Drawer Mobile) -->
+    <!-- RIGHT SIDEBAR: CART (DRAWER ON MOBILE) -->
     @if($selectedTableId)
-    <div class="w-full lg:w-96 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col h-full shadow-xl z-20 absolute inset-0 lg:relative {{ $view === 'order' ? 'translate-x-0' : 'translate-x-full lg:translate-x-0' }} transition-transform duration-300">
+    <aside class="w-full lg:w-[400px] flex-shrink-0 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 flex flex-col h-full shadow-2xl lg:shadow-none z-30 absolute inset-0 lg:relative {{ $view === 'order' ? 'translate-x-0' : 'translate-x-full lg:translate-x-0' }} transition-transform duration-300">
         
-        <!-- Header Panier -->
-        <div class="p-3 bg-blue-600 text-white flex justify-between items-center shadow-sm">
-            <div>
-                <div class="font-bold text-base flex items-center gap-2">
-                    <span>Table {{ $selectedTableId }}</span>
-                </div>
+        <!-- Cart Header -->
+        <div class="p-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center shadow-sm z-10">
+            <h3 class="font-black text-gray-800 dark:text-white text-lg uppercase tracking-wide flex items-center gap-2">
+                <x-heroicon-o-shopping-cart class="w-5 h-5 text-amber-500" />
+                Panier
+            </h3>
+            
+            <div class="flex items-center gap-2">
+                <!-- Close Button (Mobile Only) -->
+                <button wire:click="$set('view', 'tables')" class="lg:hidden p-2 text-gray-400 hover:text-gray-600">
+                    <x-heroicon-o-x-mark class="w-6 h-6" />
+                </button>
             </div>
-            <button wire:click="$set('view', 'tables')" class="p-1 hover:bg-blue-700 rounded lg:hidden">
-                <x-heroicon-o-x-mark class="w-6 h-6" />
-            </button>
         </div>
 
-        <!-- Mode de commande -->
-        <div class="grid grid-cols-3 gap-1 p-2 bg-gray-100 dark:bg-gray-900 border-b border-gray-200">
-            <button class="bg-white shadow-sm rounded py-1 text-xs font-bold text-blue-600">À TABLE</button>
-            <button class="text-gray-500 rounded py-1 text-xs">EMPORTER</button>
-            <button class="text-gray-500 rounded py-1 text-xs">LIVRAISON</button>
+        <!-- Order Tabs -->
+        <div class="grid grid-cols-2 p-1 bg-gray-100 dark:bg-gray-900 m-4 rounded-lg">
+             <button class="py-2 px-4 rounded-md text-sm font-bold shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-white transition-all">
+                Nouveaux
+             </button>
+             <button class="py-2 px-4 rounded-md text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-all">
+                Envoyés
+             </button>
         </div>
 
-        <!-- Liste Articles -->
-        <div class="flex-1 overflow-y-auto p-2 space-y-1 bg-gray-50/50">
+        <!-- Cart Items List -->
+        <div class="flex-1 overflow-y-auto px-4 py-2 space-y-3">
             @forelse($cart as $itemId => $item)
-                <div class="flex items-center justify-between p-2 bg-white rounded border border-gray-200 shadow-sm">
-                    <div class="flex-1">
-                        <div class="font-bold text-sm text-gray-800">{{ $item['name'] }}</div>
-                        <div class="text-xs text-gray-500">{{ number_format($item['price'], 2) }} x {{ $item['quantity'] }}</div>
+                <div class="flex flex-col bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-colors group">
+                    <div class="flex justify-between items-start mb-2">
+                        <span class="font-bold text-gray-800 dark:text-gray-100 text-sm leading-tight">{{ $item['name'] }}</span>
+                        <span class="font-bold text-gray-900 dark:text-white text-sm">{{ number_format($item['price'] * $item['quantity'], 2) }}</span>
                     </div>
-                    <div class="font-bold text-sm text-gray-900">{{ number_format($item['price'] * $item['quantity'], 2) }}</div>
-                    <button wire:click="removeFromCart({{ $itemId }})" class="ml-2 text-red-400 hover:text-red-600">
-                        <x-heroicon-o-trash class="w-4 h-4" />
-                    </button>
+                    
+                    <div class="flex justify-between items-center">
+                        <div class="text-xs text-gray-500 dark:text-gray-400 font-medium">
+                            {{ number_format($item['price'], 2) }} / u
+                        </div>
+
+                        <div class="flex items-center bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 overflow-hidden">
+                            <button wire:click="removeFromCart({{ $itemId }})" class="p-1.5 hover:bg-red-50 hover:text-red-500 text-gray-500 transition-colors">
+                                <x-heroicon-o-minus class="w-4 h-4" />
+                            </button>
+                            <span class="w-8 text-center font-bold text-sm text-gray-800 dark:text-gray-200">{{ $item['quantity'] }}</span>
+                            <button wire:click="addToCart({{ $item['id'] }})" class="p-1.5 hover:bg-green-50 hover:text-green-500 text-gray-500 transition-colors">
+                                <x-heroicon-o-plus class="w-4 h-4" />
+                            </button>
+                        </div>
+                    </div>
                 </div>
             @empty
                 <div class="h-full flex flex-col items-center justify-center text-gray-400 opacity-60">
-                    <p class="text-xs">Panier vide</p>
+                    <x-heroicon-o-shopping-bag class="w-16 h-16 mb-2" />
+                    <p class="text-sm font-medium">Panier vide</p>
+                    <p class="text-xs text-gray-300">Sélectionnez des produits à gauche</p>
                 </div>
             @endforelse
         </div>
 
-        <!-- Actions -->
-        <div class="bg-white p-3 border-t border-gray-200 shadow-lg z-30">
-            <div class="flex justify-between items-end mb-3">
-                <span class="text-gray-500 font-bold text-xs uppercase">Total</span>
-                <span class="text-2xl font-black text-gray-900">
-                    {{ number_format(collect($cart)->sum(fn($i) => $i['price'] * $i['quantity']), 2) }} <span class="text-sm">Dhs</span>
-                </span>
+        <!-- Footer / Totals -->
+        <div class="bg-white dark:bg-gray-800 p-4 border-t border-gray-200 dark:border-gray-700 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-20">
+            <div class="space-y-2 mb-4">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-500 dark:text-gray-400 text-sm">Sous-total</span>
+                    <span class="font-bold text-gray-800 dark:text-gray-200">{{ number_format(collect($cart)->sum(fn($i) => $i['price'] * $i['quantity']), 2) }}</span>
+                </div>
+                 <!-- Tax or Discount could go here -->
+                <div class="flex justify-between items-end pt-2 border-t border-dashed border-gray-200 dark:border-gray-700">
+                    <span class="text-gray-800 dark:text-white font-bold text-lg">Total</span>
+                    <span class="text-2xl font-black text-amber-600 dark:text-amber-500">
+                        {{ number_format(collect($cart)->sum(fn($i) => $i['price'] * $i['quantity']), 2) }} <span class="text-sm text-gray-500 font-normal">Dhs</span>
+                    </span>
+                </div>
             </div>
-            <div class="grid grid-cols-2 gap-2">
-                <button wire:click="sendOrder" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg text-sm flex justify-center gap-2">
-                    <x-heroicon-o-printer class="w-4 h-4" /> ENVOYER
+
+            <div class="grid grid-cols-2 gap-3">
+                <button wire:click="sendOrder" 
+                    class="flex flex-col items-center justify-center py-3 px-4 bg-gray-900 hover:bg-gray-800 text-white rounded-xl shadow-lg shadow-gray-200 dark:shadow-none transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                    {{ empty($cart) ? 'disabled' : '' }}>
+                    <div class="flex items-center gap-2">
+                         <x-heroicon-o-printer class="w-5 h-5" />
+                         <span class="font-bold uppercase tracking-wider text-sm">Cuisine</span>
+                    </div>
                 </button>
-                <button class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-sm flex justify-center gap-2">
-                    <x-heroicon-o-banknotes class="w-4 h-4" /> PAYER
+
+                <button 
+                    class="flex flex-col items-center justify-center py-3 px-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-lg shadow-emerald-200 dark:shadow-none transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                     {{ empty($cart) ? 'disabled' : '' }}>
+                    <div class="flex items-center gap-2">
+                        <x-heroicon-o-banknotes class="w-5 h-5" />
+                        <span class="font-bold uppercase tracking-wider text-sm">Payer</span>
+                    </div>
                 </button>
             </div>
         </div>
-    </div>
+    </aside>
     @endif
 </div>

@@ -33,7 +33,7 @@
                             <p class="text-xs text-gray-500 font-bold uppercase">{{ $order->server->name }}</p>
                         </div>
                         <div class="text-right">
-                            <span class="text-lg font-bold text-gray-800">#{{ $order->id }}</span>
+                            <span class="text-lg font-bold text-gray-800">#{{ $order->local_id }}</span>
                             <div class="text-xs font-bold {{ $order->updated_at->diffInMinutes(now()) > 20 ? 'text-red-600 animate-pulse' : 'text-gray-400' }}">
                                 {{ $order->updated_at->format('H:i') }}
                                 ({{ $order->updated_at->diffInMinutes(now()) }}m)
@@ -61,9 +61,9 @@
                                     @endif
 
                                     <!-- Note -->
-                                    @if($item->note)
+                                    @if($item->notes)
                                         <div class="text-xs text-orange-600 italic bg-orange-100 p-1 rounded mt-1">
-                                            ⚠️ {{ $item->note }}
+                                            ⚠️ {{ $item->notes }}
                                         </div>
                                     @endif
                                 </div>
@@ -74,7 +74,7 @@
                     <!-- Ticket Footer -->
                     <div class="p-3 bg-gray-200">
                         <button 
-                            wire:click="markOrderReady({{ $order->id }})"
+                            wire:click="markOrderReady('{{ $order->uuid }}')"
                             class="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-lg shadow uppercase tracking-wide transform active:scale-95 transition"
                         >
                             Terminer

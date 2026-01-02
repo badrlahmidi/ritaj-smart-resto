@@ -13,12 +13,17 @@ class OrderItem extends Model
         'quantity',
         'unit_price',
         'total_price',
+        'options',
         'notes',
+        'status',
         'printed_kitchen',
+        'printed_at',
     ];
 
     protected $casts = [
+        'options' => 'array',
         'printed_kitchen' => 'boolean',
+        'printed_at' => 'datetime',
     ];
 
     public function order(): BelongsTo

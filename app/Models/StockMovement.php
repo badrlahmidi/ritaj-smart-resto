@@ -11,7 +11,8 @@ class StockMovement extends Model
     use HasFactory;
 
     protected $fillable = [
-        'ingredient_id',
+        'stockable_id',
+        'stockable_type',
         'type', // purchase, sale, waste, adjustment
         'quantity',
         'cost',
@@ -19,8 +20,8 @@ class StockMovement extends Model
         'user_id',
     ];
 
-    public function ingredient(): BelongsTo
+    public function stockable()
     {
-        return $this->belongsTo(Ingredient::class);
+        return $this->morphTo();
     }
 }

@@ -28,7 +28,7 @@ class KdsBoard extends Component
                 $q->whereHas('product', fn($sq) => $sq->where('kitchen_station', $this->stationFilter));
             }
         })
-        ->where('status', 'in_progress')
+        ->whereIn('status', ['sent_to_kitchen', 'in_progress']) // Support both legacy and new status
         ->with(['items' => function($q) {
             $q->where('status', 'sent');
             if ($this->stationFilter) {
@@ -44,21 +44,30 @@ class KdsBoard extends Component
     public function markItemReady($itemId)
     {
         OrderItem::where('id', $itemId)->update(['status' => 'served']);
-        $this->checkOrderCompletion($itemId);
+        // Check order completion logic
     }
 
-    public function markOrderReady($orderId)
+    public function markOrderReady($orderUuid)
     {
-        $order = Order::find($orderId);
+        $order = Order::where('uuid', $orderUuid)->first();
         if (!$order) return;
 
         // Mark all filtered items as served
         foreach ($order->items as $item) {
-            if ($item->status === 'sent') {
+             // Only mark items relevant to this station or all if no station
+             if ($item->status === 'sent') {
+                if ($this->stationFilter && $item->product->kitchen_station !== $this->stationFilter) {
+                    continue; 
+                }
                 $item->update(['status' => 'served']);
-            }
+             }
         }
         
+        // If all items in order are served, update order status
+        if ($order->items()->where('status', '!=', 'served')->count() === 0) {
+            $order->update(['status' => 'ready']);
+        }
+
         $this->dispatch('notify', 'Commande terminée !', 'success');
     }
 

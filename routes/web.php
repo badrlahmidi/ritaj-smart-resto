@@ -1,7 +1,7 @@
 <?php
 
 use App\Livewire\CashRegisterLogic;
-use App\Livewire\Pos\PosLoginPage;
+// use App\Livewire\Pos\PosLoginPage;
 use App\Livewire\Pos\PosPage;
 use App\Livewire\Pos\PosOrderPage;
 use App\Livewire\Pos\PosPaymentPage;
@@ -24,7 +24,7 @@ Route::get('/', function () {
 });
 
 // POS Routes
-Route::get('/pos/login', PosLoginPage::class)->name('pos.login');
+// Route::get('/pos/login', PosLoginPage::class)->name('pos.login');
 Route::get('/pos', PosPage::class)->middleware('auth')->name('pos');
 Route::get('/pos/order/{table}', PosOrderPage::class)->middleware('auth')->name('pos.order');
 Route::get('/pos/payment/{order}', PosPaymentPage::class)->middleware('auth')->name('pos.payment');

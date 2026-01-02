@@ -33,7 +33,7 @@ class PosInterface extends Component
             'categories' => Category::where('is_active', true)->get(),
             'products' => $this->activeCategoryId 
                 ? Product::where('category_id', $this->activeCategoryId)->where('is_available', true)->get()
-                : collect(), // Show nothing or favorites if no category selected
+                : Product::where('is_available', true)->limit(50)->get(), // Show top 50 products by default
         ]);
     }
 

@@ -2,17 +2,18 @@
 
 namespace App\Models;
 
+use App\Traits\HasStock;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Ingredient extends Model
 {
-    use HasFactory;
+    use HasFactory, HasStock;
 
     protected $fillable = [
         'name',
         'unit', // kg, l, piece
-        'current_stock',
+        'stock_quantity',
         'cost_per_unit', // PUMP
         'min_stock_alert',
         'supplier_id',
@@ -24,9 +25,9 @@ class Ingredient extends Model
      */
     public function updateCostPrice($newQty, $newUnitCost)
     {
-        $oldValue = $this->current_stock * $this->cost_per_unit;
+        $oldValue = $this->stock_quantity * $this->cost_per_unit;
         $newValue = $newQty * $newUnitCost;
-        $totalQty = $this->current_stock + $newQty;
+        $totalQty = $this->stock_quantity + $newQty;
 
         if ($totalQty > 0) {
             $this->cost_per_unit = ($oldValue + $newValue) / $totalQty;
@@ -35,7 +36,7 @@ class Ingredient extends Model
              $this->cost_per_unit = $newUnitCost;
         }
 
-        $this->current_stock += $newQty;
+        $this->stock_quantity += $newQty;
         $this->save();
     }
 }
