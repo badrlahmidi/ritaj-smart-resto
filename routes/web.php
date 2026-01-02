@@ -7,21 +7,23 @@ use App\Livewire\Pos\PosOrderPage;
 use App\Livewire\Pos\PosPaymentPage;
 use App\Livewire\Kds\KdsBoard;
 use Illuminate\Support\Facades\Route;
+use App\Models\Order;
+use App\Settings\GeneralSettings;
 
-/*
-|--------------------------------------------------------------------------
-| Web Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register web routes for your application. These
-| routes are loaded by the RouteServiceProvider and all of them will
-| be assigned to the "web" middleware group. Make something great!
-|
-*/
+use App\Livewire\Pos\Terminal;
 
 Route::get('/', function () {
-    return redirect('/admin');
+    return view('welcome');
 });
+
+Route::get('/pos', Terminal::class)->name('pos.terminal')->middleware('auth');
+
+Route::get('/admin/orders/{order}/print', function (Order $order) {
+    return view('receipts.thermal', [
+        'order' => $order->load('items.product', 'table', 'server'),
+        'settings' => app(GeneralSettings::class),
+    ]);
+})->name('order.print')->middleware('auth');
 
 // POS Routes
 // Route::get('/pos/login', PosLoginPage::class)->name('pos.login');

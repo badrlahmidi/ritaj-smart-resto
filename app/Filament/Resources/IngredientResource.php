@@ -10,14 +10,18 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 
+use App\Settings\GeneralSettings;
+
 class IngredientResource extends Resource
 {
     protected static ?string $model = Ingredient::class;
+    
+    // ... existing properties ...
 
-    protected static ?string $navigationIcon = 'heroicon-o-beaker';
-    protected static ?string $navigationGroup = '📦 Catalogue & Stock'; // Changed
-    protected static ?int $navigationSort = 2; // After Products
-    protected static ?string $label = 'Ingrédient / Stock';
+    public static function shouldRegisterNavigation(): bool
+    {
+        return app(GeneralSettings::class)->enable_stock_management;
+    }
 
     public static function form(Form $form): Form
     {

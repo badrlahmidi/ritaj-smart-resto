@@ -50,12 +50,13 @@ class UserResource extends Resource
                             ])
                             ->required()
                             ->default('server'),
-                        Forms\Components\TextInput::make('pin_code')
-                            ->label('Code PIN (POS)')
+                        Forms\Components\TextInput::make('new_pin')
+                            ->label('Nouveau Code PIN')
                             ->numeric()
                             ->length(4)
                             ->password()
                             ->revealable()
+                            ->dehydrated(false)
                             ->placeholder('1234'),
                     ])->columns(2),
             ]);
@@ -76,7 +77,10 @@ class UserResource extends Resource
                         'server' => 'info',
                         'kitchen' => 'gray',
                     }),
-                Tables\Columns\TextColumn::make('pin_code')->label('PIN')->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\IconColumn::make('pin.id')
+                    ->label('PIN Configuré')
+                    ->boolean()
+                    ->default(false),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

@@ -3,14 +3,12 @@
 namespace App\Filament\Pages;
 
 use App\Settings\GeneralSettings;
-use App\Settings\PosSettings;
-use App\Settings\PrinterSettings;
-use App\Settings\FeatureSettings;
 use Filament\Forms\Components\FileUpload;
-use Filament\Forms\Components\Select;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Tabs;
-use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Form;
 use Filament\Pages\SettingsPage;
@@ -18,9 +16,9 @@ use Filament\Pages\SettingsPage;
 class ManageSettings extends SettingsPage
 {
     protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
-    protected static ?string $navigationGroup = 'Administration';
-    protected static ?string $title = 'Paramètres Système';
-    protected static ?int $navigationSort = 1;
+    protected static ?string $navigationGroup = '⚙️ Configuration';
+    protected static ?string $title = 'Paramètres Généraux';
+    protected static ?int $navigationSort = 10;
 
     protected static string $settings = GeneralSettings::class;
 
@@ -28,85 +26,115 @@ class ManageSettings extends SettingsPage
     {
         return $form
             ->schema([
-                Tabs::make('Configuration')
+                Tabs::make('Settings')
                     ->tabs([
-                        Tabs\Tab::make('Général')
-                            ->icon('heroicon-o-building-storefront')
+                        // ONOLET 1: IDENTITÉ
+                        Tabs\Tab::make('🏢 Identité & Contact')
                             ->schema([
-                                FileUpload::make('site_logo')
-                                    ->label('Logo Restaurant')
-                                    ->image()
-                                    ->directory('logos'),
-                                TextInput::make('site_name')
-                                    ->label('Nom de l\'enseigne')
-                                    ->required(),
-                                Textarea::make('address')
-                                    ->label('Adresse')
-                                    ->rows(3),
-                                TextInput::make('phone')
-                                    ->label('Téléphone'),
+                                Grid::make(2)
+                                    ->schema([
+                                        TextInput::make('site_name')
+                                            ->label('Nom de l\'établissement')
+                                            ->required()
+                                            ->columnSpan(1),
+                                        TextInput::make('email')
+                                            ->label('Email de contact')
+                                            ->email()
+                                            ->columnSpan(1),
+                                        FileUpload::make('site_logo')
+                                            ->label('Logo Principal')
+                                            ->image()
+                                            ->directory('settings')
+                                            ->avatar()
+                                            ->columnSpan(2),
+                                        TextInput::make('phone')
+                                            ->label('Téléphone')
+                                            ->tel()
+                                            ->prefixIcon('heroicon-m-phone'),
+                                        Textarea::make('address')
+                                            ->label('Adresse Complète')
+                                            ->rows(3)
+                                            ->columnSpanFull(),
+                                    ]),
+                                Section::make('Réseaux Sociaux')
+                                    ->schema([
+                                        TextInput::make('facebook_url')
+                                            ->label('Page Facebook')
+                                            ->url()
+                                            ->prefix('https://facebook.com/'),
+                                        TextInput::make('instagram_url')
+                                            ->label('Compte Instagram')
+                                            ->prefix('@'),
+                                    ])->columns(2)->collapsed(),
+                            ]),
+
+                        // ONGLET 2: OPÉRATIONS
+                        Tabs\Tab::make('⚙️ Opérations & Finance')
+                            ->schema([
+                                Grid::make(2)
+                                    ->schema([
+                                        TextInput::make('currency_symbol')
+                                            ->label('Symbole Monétaire')
+                                            ->default('DH')
+                                            ->placeholder('DH, €, $'),
+                                        TextInput::make('default_tax_rate')
+                                            ->label('Taux de TVA par défaut (%)')
+                                            ->numeric()
+                                            ->suffix('%')
+                                            ->default(10),
+                                    ]),
+                            ]),
+
+                        // ONGLET 3: MODULES
+                        Tabs\Tab::make('🚀 Fonctionnalités')
+                            ->description('Activez uniquement ce dont vous avez besoin.')
+                            ->schema([
+                                Grid::make(2)
+                                    ->schema([
+                                        Section::make('Logistique')
+                                            ->schema([
+                                                Toggle::make('enable_stock_management')
+                                                    ->label('Gestion des Stocks')
+                                                    ->helperText('Suivi des ingrédients et inventaire.')
+                                                    ->onIcon('heroicon-m-check')
+                                                    ->offIcon('heroicon-m-x-mark')
+                                                    ->onColor('success'),
+                                                Toggle::make('enable_kds')
+                                                    ->label('Écran Cuisine (KDS)')
+                                                    ->helperText('Envoi des commandes vers les écrans en cuisine.')
+                                                    ->onColor('warning'),
+                                            ])->columnSpan(1),
+
+                                        Section::make('Types de Commande')
+                                            ->schema([
+                                                Toggle::make('enable_takeaway')
+                                                    ->label('Vente à Emporter')
+                                                    ->default(true),
+                                                Toggle::make('enable_delivery')
+                                                    ->label('Livraison')
+                                                    ->default(true),
+                                            ])->columnSpan(1),
+                                    ]),
+                            ]),
+
+                        // ONGLET 4: IMPRESSION
+                        Tabs\Tab::make('🧾 Impression')
+                            ->schema([
                                 Textarea::make('receipt_footer')
-                                    ->label('Pied de page Ticket')
-                                    ->placeholder('Merci de votre visite !'),
-                            ]),
-                        
-                        Tabs\Tab::make('Règles POS')
-                            ->icon('heroicon-o-currency-dollar')
-                            ->schema([
-                                Select::make('service_mode')
-                                    ->label('Mode Service')
-                                    ->options([
-                                        'standard' => 'À Table (Paiement Fin)',
-                                        'fast_food' => 'Rapide (Paiement Début)',
+                                    ->label('Pied de page du ticket')
+                                    ->rows(3)
+                                    ->helperText('Message de remerciement, infos légales...'),
+                                
+                                Grid::make(2)
+                                    ->schema([
+                                        TextInput::make('wifi_ssid')
+                                            ->label('Nom du Wifi (SSID)')
+                                            ->prefixIcon('heroicon-m-wifi'),
+                                        TextInput::make('wifi_password')
+                                            ->label('Mot de passe Wifi'),
                                     ]),
-                                Select::make('default_tax_rate')
-                                    ->label('TVA par défaut')
-                                    ->options([
-                                        '0' => '0%',
-                                        '10' => '10%',
-                                        '20' => '20%'
-                                    ]),
-                                TextInput::make('currency')
-                                    ->label('Devise')
-                                    ->default('DH'),
-                                Toggle::make('allow_negative_stock')
-                                    ->label('Autoriser vente hors stock'),
-                                Toggle::make('auto_clear_table')
-                                    ->label('Libérer table après paiement'),
                             ]),
-
-                        Tabs\Tab::make('Imprimantes')
-                            ->icon('heroicon-o-printer')
-                            ->schema([
-                                Select::make('driver')
-                                    ->label('Driver d\'Impression')
-                                    ->options([
-                                        'network' => 'Réseau (Ethernet/Wifi)',
-                                        'windows' => 'Windows USB / Partage',
-                                    ]),
-                                TextInput::make('printer_ip_cashier')
-                                    ->label('IP Caisse (Master)'),
-                                TextInput::make('printer_ip_kitchen')
-                                    ->label('IP Cuisine (KDS Backup)'),
-                                TextInput::make('printer_ip_bar')
-                                    ->label('IP Bar'),
-                                Toggle::make('open_cash_drawer')
-                                    ->label('Ouvrir Tiroir Caisse après impression'),
-                            ]),
-
-                        Tabs\Tab::make('Modules')
-                            ->icon('heroicon-o-cpu-chip')
-                            ->schema([
-                                Toggle::make('enable_stock_module')
-                                    ->label('Activer Module Stock'),
-                                Toggle::make('enable_kds_module')
-                                    ->label('Activer Écran Cuisine (KDS)'),
-                                Toggle::make('enable_delivery_module')
-                                    ->label('Activer Module Livraison'),
-                                Toggle::make('enable_waiter_tablets')
-                                    ->label('Activer Tablettes Serveurs'),
-                            ]),
-                    ])->columnSpanFull()
+                    ])->columnSpanFull(),
             ]);
     }
 }

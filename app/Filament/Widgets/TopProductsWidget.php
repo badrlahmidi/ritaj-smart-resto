@@ -6,39 +6,44 @@ use App\Models\OrderItem;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget as BaseWidget;
+use Filament\Widgets\Concerns\InteractsWithPageFilters;
 use Illuminate\Support\Facades\DB;
 
 class TopProductsWidget extends BaseWidget
 {
+    use InteractsWithPageFilters;
+
+    protected static ?string $heading = 'Top 5 Produits';
     protected static ?int $sort = 3;
-    protected static ?string $heading = 'Top 5 Produits (Mois en cours)';
-    protected int | string | array $columnSpan = 'half';
+    protected int | string | array $columnSpan = 'full';
 
     public function table(Table $table): Table
     {
         return $table
-            ->query(
-                OrderItem::query()
-                    ->select('order_items.product_id', DB::raw('SUM(order_items.quantity) as total_qty'), DB::raw('SUM(order_items.unit_price * order_items.quantity) as total_revenue'))
-                    ->join('orders', 'orders.uuid', '=', 'order_items.order_uuid')
+            ->query(function () {
+                $startDate = $this->filters['startDate'] ?? now()->startOfMonth();
+                $endDate = $this->filters['endDate'] ?? now()->endOfMonth();
+
+                return OrderItem::query()
+                    ->join('orders', 'order_items.order_uuid', '=', 'orders.uuid')
+                    ->join('products', 'order_items.product_id', '=', 'products.id')
                     ->where('orders.status', 'paid')
-                    ->whereMonth('orders.created_at', now()->month)
-                    ->whereYear('orders.created_at', now()->year)
-                    ->groupBy('order_items.product_id')
-                    ->orderByDesc('total_qty')
-                    ->limit(5)
-            )
+                    ->whereBetween('orders.created_at', [$startDate, $endDate])
+                    ->select(
+                        'products.name',
+                        'products.image_url',
+                        DB::raw('SUM(order_items.quantity) as total_qty'),
+                        DB::raw('SUM(order_items.total_price) as total_revenue')
+                    )
+                    ->groupBy('products.id', 'products.name', 'products.image_url')
+                    ->orderByDesc('total_revenue')
+                    ->limit(5);
+            })
             ->columns([
-                Tables\Columns\TextColumn::make('product.name')
-                    ->label('Produit')
-                    ->weight('bold'),
-                Tables\Columns\TextColumn::make('total_qty')
-                    ->label('Ventes')
-                    ->badge(),
-                Tables\Columns\TextColumn::make('total_revenue')
-                    ->label('CA Généré')
-                    ->money('mad')
-                    ->sortable(),
+                Tables\Columns\ImageColumn::make('image_url')->circular()->label(''),
+                Tables\Columns\TextColumn::make('name')->label('Produit')->weight('bold'),
+                Tables\Columns\TextColumn::make('total_qty')->label('Qté Vendue'),
+                Tables\Columns\TextColumn::make('total_revenue')->money('mad')->label('CA Généré'),
             ])
             ->paginated(false);
     }

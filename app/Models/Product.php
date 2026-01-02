@@ -42,8 +42,7 @@ class Product extends Model
     public function optionGroups(): BelongsToMany
     {
         return $this->belongsToMany(OptionGroup::class)
-            ->withPivot('sort_order')
-            ->orderBy('pivot_sort_order');
+            ->withPivot('sort_order');
     }
 
     /**
@@ -56,5 +55,13 @@ class Product extends Model
             \App\Enums\OrderType::DELIVERY => $this->price * 1.1, // +10%
             default => $this->price,
         };
+    }
+
+    /**
+     * Override HasStock trait method to use 'cost' column
+     */
+    public function getCostPrice(): float
+    {
+        return $this->cost ?? 0;
     }
 }

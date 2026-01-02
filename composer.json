@@ -9,10 +9,15 @@
         "filament/filament": "^3.2",
         "filament/spatie-laravel-settings-plugin": "^3.2",
         "guzzlehttp/guzzle": "^7.2",
+        "intervention/image": "^3.11",
         "laravel/framework": "^11.0",
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "livewire/livewire": "^3.4",
+        "mike42/escpos-php": "^4.0",
+        "pxlrbt/filament-excel": "^2.5",
+        "spatie/laravel-backup": "^9.3",
+        "spatie/laravel-query-builder": "^6.3",
         "spatie/laravel-settings": "^3.2"
     },
     "require-dev": {
@@ -21,7 +26,7 @@
         "laravel/sail": "^1.26",
         "mockery/mockery": "^1.6",
         "nunomaduro/collision": "^8.0",
-        "phpunit/phpunit": "^10.5",
+        "phpunit/phpunit": "^11.5",
         "spatie/laravel-ignition": "^2.4"
     },
     "autoload": {

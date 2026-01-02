@@ -9,6 +9,10 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Tables\Filters\Filter;
+use Filament\Forms\Components\DatePicker;
+use Illuminate\Database\Eloquent\Builder;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class OrderResource extends Resource
 {
@@ -44,22 +48,68 @@ class OrderResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('local_id')->label('# Ticket')->sortable(),
-                Tables\Columns\TextColumn::make('table.name')->sortable(),
+                Tables\Columns\TextColumn::make('local_id')->label('# Ticket')->sortable()->searchable(),
+                Tables\Columns\TextColumn::make('table.name')->label('Table')->sortable(),
                 Tables\Columns\TextColumn::make('status')
-                    ->badge(),
-                Tables\Columns\TextColumn::make('total_amount')->money('mad'),
-                Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable(),
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'paid' => 'success',
+                        'pending' => 'warning',
+                        'cancelled' => 'danger',
+                        default => 'gray',
+                    }),
+                Tables\Columns\TextColumn::make('type')
+                    ->badge()
+                    ->color('info')
+                    ->formatStateUsing(fn (string $state): string => ucfirst(str_replace('_', ' ', $state))),
+                Tables\Columns\TextColumn::make('total_amount')->money('mad')->sortable(),
+                Tables\Columns\TextColumn::make('created_at')
+                    ->label('Date')
+                    ->dateTime('d/m/Y H:i')
+                    ->sortable(),
             ])
             ->filters([
-                //
+                Tables\Filters\SelectFilter::make('status')
+                    ->options([
+                        'paid' => 'Payée',
+                        'pending' => 'En attente',
+                        'cancelled' => 'Annulée',
+                    ]),
+                Tables\Filters\SelectFilter::make('type')
+                    ->options([
+                        'dine_in' => 'Sur Place',
+                        'takeaway' => 'À Emporter',
+                        'delivery' => 'Livraison',
+                    ]),
+                Filter::make('created_at')
+                    ->form([
+                        DatePicker::make('created_from')->label('Du'),
+                        DatePicker::make('created_until')->label('Au'),
+                    ])
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query
+                            ->when(
+                                $data['created_from'],
+                                fn (Builder $query, $date) => $query->whereDate('created_at', '>=', $date),
+                            )
+                            ->when(
+                                $data['created_until'],
+                                fn (Builder $query, $date) => $query->whereDate('created_at', '<=', $date),
+                            );
+                    })
             ])
             ->actions([
+                Tables\Actions\Action::make('print')
+                    ->label('Imprimer')
+                    ->icon('heroicon-o-printer')
+                    ->url(fn (Order $record) => route('order.print', $record))
+                    ->openUrlInNewTab(),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    ExportBulkAction::make(),
                 ]),
             ]);
     }

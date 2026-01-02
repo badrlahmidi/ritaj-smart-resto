@@ -9,17 +9,20 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use pxlrbt\FilamentExcel\Actions\Tables\ExportBulkAction;
 
 class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
-
+    // ... existing navigation config ...
     protected static ?string $navigationIcon = 'heroicon-o-cube';
     protected static ?string $navigationGroup = '📦 Catalogue';
     protected static ?int $navigationSort = 1;
 
     public static function form(Form $form): Form
     {
+        // ... existing form ...
         return $form
             ->schema([
                 Forms\Components\Group::make()
@@ -111,6 +114,16 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('name')->searchable()->weight('bold'),
                 Tables\Columns\TextColumn::make('category.name')->badge(),
                 Tables\Columns\TextColumn::make('price')->money('mad')->sortable(),
+                Tables\Columns\TextColumn::make('cost')->money('mad')->label('Coût')->toggleable(isToggledHiddenByDefault: true),
+                Tables\Columns\TextColumn::make('stock_quantity')
+                    ->label('Stock')
+                    ->badge()
+                    ->color(fn (Product $record): string => match (true) {
+                        !$record->has_stock => 'gray',
+                        $record->stock_quantity <= 5 => 'danger',
+                        $record->stock_quantity <= 10 => 'warning',
+                        default => 'success',
+                    }),
                 Tables\Columns\TextColumn::make('kitchen_station')
                     ->label('Poste')
                     ->badge()
@@ -125,6 +138,9 @@ class ProductResource extends Resource
                         'bar' => 'Bar',
                         'pizza_oven' => 'Pizza',
                     ]),
+                Tables\Filters\Filter::make('low_stock')
+                    ->label('Stock Critique (< 10)')
+                    ->query(fn (Builder $query): Builder => $query->where('has_stock', true)->where('stock_quantity', '<=', 10)),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
@@ -132,6 +148,7 @@ class ProductResource extends Resource
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
                     Tables\Actions\DeleteBulkAction::make(),
+                    ExportBulkAction::make(),
                 ]),
             ]);
     }
