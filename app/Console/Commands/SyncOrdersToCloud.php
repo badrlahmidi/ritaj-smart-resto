@@ -20,8 +20,9 @@ class SyncOrdersToCloud extends Command
         $limit = $this->option('limit');
         $force = $this->option('force');
         
-        $query = Order::with(['items.product', 'table', 'waiter'])
-            ->orderBy('created_at');
+        $query = Order::with(['items.product', 'table', 'server'])
+            ->where('sync_status', false)
+            ->where('status', 'paid');
         
         if (!$force) {
             $query->where('sync_status', false);
@@ -59,12 +60,12 @@ class SyncOrdersToCloud extends Command
                         'product_id' => $item->product_id,
                         'product_name' => $item->product->name,
                         'quantity' => $item->quantity,
-                        'price' => $item->price,
-                        'subtotal' => $item->subtotal,
+                        'price' => $item->unit_price,
+                        'subtotal' => $item->total_price,
                         'notes' => $item->notes,
                     ]),
                     'table' => $order->table?->only(['id', 'name', 'qr_code_hash']),
-                    'waiter' => $order->waiter?->only(['id', 'name', 'email']),
+                    'server' => $order->server?->only(['id', 'name', 'email']),
                 ]);
 
                 if ($response->successful()) {

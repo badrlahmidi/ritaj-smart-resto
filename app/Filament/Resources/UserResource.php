@@ -50,8 +50,13 @@ class UserResource extends Resource
                             ])
                             ->required()
                             ->default('server'),
+                        Forms\Components\Toggle::make('is_active')
+                            ->label('Compte Actif')
+                            ->default(true)
+                            ->onColor('success'),
                         Forms\Components\TextInput::make('new_pin')
                             ->label('Nouveau Code PIN')
+                            ->helperText('Code à 4 chiffres pour le POS')
                             ->numeric()
                             ->length(4)
                             ->password()
@@ -66,8 +71,8 @@ class UserResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\ImageColumn::make('avatar_url')->circular(),
-                Tables\Columns\TextColumn::make('name')->weight('bold')->searchable(),
+                Tables\Columns\ImageColumn::make('avatar_url')->circular()->label('Avatar'),
+                Tables\Columns\TextColumn::make('name')->weight('bold')->searchable()->label('Nom'),
                 Tables\Columns\TextColumn::make('email')->searchable(),
                 Tables\Columns\TextColumn::make('role')
                     ->badge()
@@ -76,11 +81,21 @@ class UserResource extends Resource
                         'manager' => 'warning',
                         'server' => 'info',
                         'kitchen' => 'gray',
-                    }),
+                    })->label('Rôle'),
+                Tables\Columns\ToggleColumn::make('is_active')->label('Actif'),
                 Tables\Columns\IconColumn::make('pin.id')
-                    ->label('PIN Configuré')
+                    ->label('PIN')
                     ->boolean()
                     ->default(false),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('role')
+                    ->options([
+                        'admin' => 'Administrateur',
+                        'manager' => 'Gérant',
+                        'server' => 'Serveur',
+                        'kitchen' => 'Cuisinier',
+                    ]),
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),

@@ -87,7 +87,6 @@ class ManageSettings extends SettingsPage
 
                         // ONGLET 3: MODULES
                         Tabs\Tab::make('🚀 Fonctionnalités')
-                            ->description('Activez uniquement ce dont vous avez besoin.')
                             ->schema([
                                 Grid::make(2)
                                     ->schema([

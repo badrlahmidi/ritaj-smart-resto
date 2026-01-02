@@ -100,7 +100,7 @@ class PosInterface extends Component
                 $order = Order::create([
                     'uuid' => Str::uuid(),
                     'table_id' => $table->id,
-                    'waiter_id' => Auth::id(), // Use logged in filament user
+                    'user_id' => Auth::id(), // Use logged in filament user
                     'status' => 'sent_to_kitchen', // CRUCIAL : Doit être 'sent_to_kitchen' pour apparaître au KDS
                     'sync_status' => false
                 ]);

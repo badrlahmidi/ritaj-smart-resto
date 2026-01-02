@@ -1,3 +1,3 @@
 <x-filament-panels::page>
-    @livewire('kitchen-display-system')
+    @livewire('kds.kds-board')
 </x-filament-panels::page>

@@ -34,7 +34,7 @@
                         <div class="flex justify-between items-end mt-2">
                              <div class="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                                 <x-heroicon-o-user class="w-3 h-3" />
-                                {{ $order->waiter->name ?? 'Serveur' }}
+                                {{ $order->server->name ?? 'Serveur' }}
                              </div>
                              <span class="text-[10px] font-medium text-gray-400 bg-gray-100 dark:bg-gray-600 px-2 py-1 rounded-full">
                                 {{ $order->updated_at->format('H:i') }}

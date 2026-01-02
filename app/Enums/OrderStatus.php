@@ -7,18 +7,20 @@ use Filament\Support\Contracts\HasLabel;
 
 enum OrderStatus: string implements HasLabel, HasColor
 {
-    case Pending = 'pending';
+    case Draft = 'draft';
     case SentToKitchen = 'sent_to_kitchen';
-    case Ready = 'ready';
+    case InService = 'in_service';
+    case PaymentPending = 'payment_pending';
     case Paid = 'paid';
     case Cancelled = 'cancelled';
 
     public function getLabel(): ?string
     {
         return match ($this) {
-            self::Pending => 'En attente',
+            self::Draft => 'Brouillon',
             self::SentToKitchen => 'En cuisine',
-            self::Ready => 'Prêt',
+            self::InService => 'En service',
+            self::PaymentPending => 'Addition demandée',
             self::Paid => 'Payé',
             self::Cancelled => 'Annulé',
         };
@@ -27,10 +29,11 @@ enum OrderStatus: string implements HasLabel, HasColor
     public function getColor(): string | array | null
     {
         return match ($this) {
-            self::Pending => 'gray',
+            self::Draft => 'gray',
             self::SentToKitchen => 'warning',
-            self::Ready => 'success',
-            self::Paid => 'info',
+            self::InService => 'info',
+            self::PaymentPending => 'danger',
+            self::Paid => 'success',
             self::Cancelled => 'danger',
         };
     }

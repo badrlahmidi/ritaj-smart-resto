@@ -9,4 +9,12 @@ use Filament\Resources\Pages\CreateRecord;
 class CreateOrder extends CreateRecord
 {
     protected static string $resource = OrderResource::class;
+
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        $data['user_id'] = auth()->id();
+        $data['uuid'] = \Illuminate\Support\Str::uuid();
+
+        return $data;
+    }
 }

@@ -26,7 +26,7 @@ class PosPaymentPage extends Component
         $this->order = $order;
         $this->amountToPay = $order->total_amount;
         
-        if ($order->status === 'paid') {
+        if ($order->status === \App\Enums\OrderStatus::Paid) {
             session()->flash('error', 'Commande déjà payée !');
             return redirect()->route('pos');
         }
@@ -100,7 +100,7 @@ class PosPaymentPage extends Component
 
             // 2. Update Order
             $this->order->update([
-                'status' => 'paid',
+                'status' => \App\Enums\OrderStatus::Paid,
                 'payment_status' => 'paid'
             ]);
 

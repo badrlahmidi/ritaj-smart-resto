@@ -59,7 +59,7 @@
                         </h3>
                         <div class="flex items-center gap-2 mt-1">
                             <span class="text-xs font-bold text-gray-500 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 px-2 py-0.5 rounded">#{{ $order->local_id }}</span>
-                            <span class="text-xs text-gray-400 dark:text-gray-500">{{ $order->waiter->name ?? 'Srv' }}</span>
+                            <span class="text-xs text-gray-400 dark:text-gray-500">{{ $order->server->name ?? 'Srv' }}</span>
                         </div>
                     </div>
                     <div class="text-right">

@@ -1,3 +1,3 @@
 <div>
-    @livewire('pos-interface')
+    @livewire('pos.pro-pos')
 </div>

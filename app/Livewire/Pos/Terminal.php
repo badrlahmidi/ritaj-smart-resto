@@ -126,7 +126,7 @@ class Terminal extends Component
             'uuid' => Str::uuid(),
             'user_id' => $userId,
             'table_id' => $this->selectedTableId ?: null, // Ensure empty string becomes null
-            'status' => 'paid',
+            'status' => \App\Enums\OrderStatus::Paid,
             'payment_status' => 'paid',
             'type' => $this->orderType,
             'total_amount' => $this->getTotalProperty(),
@@ -140,7 +140,7 @@ class Terminal extends Component
                 'quantity' => $item['quantity'],
                 'unit_price' => $item['price'],
                 'total_price' => $item['total'],
-                'status' => 'sent',
+                'status' => \App\Enums\OrderItemStatus::Sent,
                 'printed_kitchen' => false,
             ]);
             

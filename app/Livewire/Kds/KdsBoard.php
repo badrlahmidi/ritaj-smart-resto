@@ -23,14 +23,14 @@ class KdsBoard extends Component
     {
         // Get orders that have items with 'sent' status
         $query = Order::whereHas('items', function ($q) {
-            $q->where('status', 'sent');
+            $q->where('status', \App\Enums\OrderItemStatus::Sent->value);
             if ($this->stationFilter) {
                 $q->whereHas('product', fn($sq) => $sq->where('kitchen_station', $this->stationFilter));
             }
         })
-        ->whereIn('status', ['sent_to_kitchen', 'in_progress']) // Support both legacy and new status
+        ->whereIn('status', [\App\Enums\OrderStatus::SentToKitchen->value, 'in_progress']) // Support both legacy and new status
         ->with(['items' => function($q) {
-            $q->where('status', 'sent');
+            $q->where('status', \App\Enums\OrderItemStatus::Sent->value);
             if ($this->stationFilter) {
                 $q->whereHas('product', fn($sq) => $sq->where('kitchen_station', $this->stationFilter));
             }
@@ -43,7 +43,7 @@ class KdsBoard extends Component
 
     public function markItemReady($itemId)
     {
-        OrderItem::where('id', $itemId)->update(['status' => 'served']);
+        OrderItem::where('id', $itemId)->update(['status' => \App\Enums\OrderItemStatus::Served->value]);
         // Check order completion logic
     }
 
@@ -55,17 +55,17 @@ class KdsBoard extends Component
         // Mark all filtered items as served
         foreach ($order->items as $item) {
              // Only mark items relevant to this station or all if no station
-             if ($item->status === 'sent') {
+             if ($item->status === \App\Enums\OrderItemStatus::Sent) {
                 if ($this->stationFilter && $item->product->kitchen_station !== $this->stationFilter) {
                     continue; 
                 }
-                $item->update(['status' => 'served']);
+                $item->update(['status' => \App\Enums\OrderItemStatus::Served]);
              }
         }
         
         // If all items in order are served, update order status
-        if ($order->items()->where('status', '!=', 'served')->count() === 0) {
-            $order->update(['status' => 'ready']);
+        if ($order->items()->where('status', '!=', \App\Enums\OrderItemStatus::Served)->count() === 0) {
+            $order->update(['status' => \App\Enums\OrderStatus::InService]);
         }
 
         $this->dispatch('notify', 'Commande terminée !', 'success');

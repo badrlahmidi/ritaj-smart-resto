@@ -19,7 +19,7 @@ class CashRegisterLogic extends Component
     {
         return Order::query()
             ->whereIn('status', ['sent_to_kitchen', 'ready', 'pending'])
-            ->with(['table', 'waiter'])
+            ->with(['table', 'server'])
             ->orderByDesc('updated_at')
             ->get();
     }

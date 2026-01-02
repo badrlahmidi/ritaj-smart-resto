@@ -37,7 +37,7 @@ Utilisation d'**UUIDs** comme clés primaires pour éviter les conflits de synch
 *   `uuid` (Primary Key, char 36)
 *   `local_id` (Auto-increment, pour affichage ticket #102)
 *   `table_id` (Relation)
-*   `waiter_id` (User)
+*   `user_id` (User)
 *   `status` (enum: pending, sent_to_kitchen, ready, paid, cancelled)
 *   `sync_status` (boolean: false = à envoyer au cloud, true = synchronisé)
 *   `payment_method` (cash, card)

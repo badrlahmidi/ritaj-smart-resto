@@ -22,6 +22,7 @@ class OrderItem extends Model
 
     protected $casts = [
         'options' => 'array',
+        'status' => \App\Enums\OrderItemStatus::class,
         'printed_kitchen' => 'boolean',
         'printed_at' => 'datetime',
     ];
