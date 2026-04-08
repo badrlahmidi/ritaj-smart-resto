@@ -9,8 +9,11 @@ use Livewire\Component;
 class CashRegisterLogic extends Component
 {
     public $selectedOrderUuid = null;
+
     public $paymentMethod = 'cash';
+
     public $amountTendered = 0;
+
     public $change = 0;
 
     protected $listeners = ['$refresh'];
@@ -26,7 +29,10 @@ class CashRegisterLogic extends Component
 
     public function getSelectedOrderProperty()
     {
-        if (!$this->selectedOrderUuid) return null;
+        if (! $this->selectedOrderUuid) {
+            return null;
+        }
+
         return Order::with(['items.product', 'table'])->find($this->selectedOrderUuid);
     }
 
@@ -51,7 +57,9 @@ class CashRegisterLogic extends Component
 
     public function processPayment()
     {
-        if (!$this->selectedOrder) return;
+        if (! $this->selectedOrder) {
+            return;
+        }
 
         $order = $this->selectedOrder;
 
@@ -76,7 +84,7 @@ class CashRegisterLogic extends Component
         $this->selectedOrderUuid = null;
         $this->amountTendered = 0;
         $this->change = 0;
-        
+
         session()->flash('success', 'Paiement enregistré et ticket imprimé !');
         $this->dispatch('notify', 'Paiement OK');
     }

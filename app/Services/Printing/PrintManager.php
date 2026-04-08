@@ -4,9 +4,8 @@ namespace App\Services\Printing;
 
 use App\Jobs\ProcessPrintJob;
 use App\Models\Order;
-use App\Models\PrintJob;
 use App\Models\Printer;
-use App\Models\Product;
+use App\Models\PrintJob;
 use App\Settings\GeneralSettings;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
@@ -184,7 +183,7 @@ class PrintManager
         return match ($printerModel->type) {
             'network' => new NetworkPrintConnector($printerModel->path ?: $printerModel->ip_address, $printerModel->port ?? 9100),
             'windows', 'usb' => new WindowsPrintConnector($printerModel->path ?: $printerModel->name),
-            default => new DummyPrintConnector(),
+            default => new DummyPrintConnector,
         };
     }
 

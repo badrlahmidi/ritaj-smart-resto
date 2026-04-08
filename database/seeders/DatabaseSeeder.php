@@ -73,7 +73,7 @@ class DatabaseSeeder extends Seeder
                 'area_id' => $mainArea->id,
                 'capacity' => 4,
                 'status' => 'available',
-                'shape' => 'square'
+                'shape' => 'square',
             ]);
         }
         // Tables Terrasse (10-12)
@@ -83,7 +83,7 @@ class DatabaseSeeder extends Seeder
                 'area_id' => $terraceArea->id,
                 'capacity' => 2,
                 'status' => 'available',
-                'shape' => 'round'
+                'shape' => 'round',
             ]);
         }
 
@@ -114,7 +114,7 @@ class DatabaseSeeder extends Seeder
 
         // --- BOISSONS ---
         $catDrinks = Category::create(['name' => 'Boissons', 'is_active' => true]);
-        
+
         Product::create([
             'name' => 'Coca Cola',
             'category_id' => $catDrinks->id,
@@ -125,7 +125,7 @@ class DatabaseSeeder extends Seeder
             'kitchen_station' => 'bar',
             'image_url' => null, // Placeholder handled by UI
         ]);
-        
+
         Product::create([
             'name' => 'Eau Minérale 1L',
             'category_id' => $catDrinks->id,

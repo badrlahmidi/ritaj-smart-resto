@@ -14,7 +14,9 @@ class Order extends Model
 
     // Configuration UUID
     protected $primaryKey = 'uuid';
+
     protected $keyType = 'string';
+
     public $incrementing = false;
 
     protected $fillable = [

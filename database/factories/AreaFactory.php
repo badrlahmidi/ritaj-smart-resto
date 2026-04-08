@@ -15,7 +15,7 @@ class AreaFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => $this->faker->unique()->randomElement(['Salle', 'Terrasse', 'VIP']).' '.$this->faker->numberBetween(1, 20),
+            'name' => sprintf('Zone %s %s', strtoupper($this->faker->bothify('??')), $this->faker->unique()->numberBetween(1, 9999)),
             'is_active' => true,
         ];
     }

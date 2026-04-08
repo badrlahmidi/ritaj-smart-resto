@@ -13,7 +13,9 @@ use Filament\Tables\Table;
 class PrinterResource extends Resource
 {
     protected static ?string $model = Printer::class;
+
     protected static ?string $navigationIcon = 'heroicon-o-printer';
+
     protected static ?string $navigationGroup = 'Infrastructure & Sécurité'; // Updated Group
 
     public static function form(Form $form): Form
@@ -69,7 +71,7 @@ class PrinterResource extends Resource
                         'pizza' => 'Four à Pizza',
                     ])
                     ->columns(2),
-                
+
                 Forms\Components\Toggle::make('is_active')
                     ->label('Actif')
                     ->default(true),

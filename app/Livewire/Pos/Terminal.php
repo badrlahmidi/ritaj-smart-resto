@@ -7,8 +7,6 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Models\Table;
 use App\Services\Printing\ReceiptPrinterService;
-use App\Settings\GeneralSettings;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -18,14 +16,18 @@ class Terminal extends Component
 {
     // Data
     public $categories;
+
     public $currentCategoryId;
+
     public $products;
-    
+
     // State
     public $cart = []; // [product_id => ['qty' => 1, 'price' => 10, 'name' => 'Pizza']]
+
     public $selectedTableId = null;
+
     public $orderType = 'dine_in'; // dine_in, takeaway
-    
+
     // UI
     public $search = '';
 
@@ -41,13 +43,13 @@ class Terminal extends Component
     public function loadProducts()
     {
         $query = Product::where('is_available', true);
-        
+
         if ($this->currentCategoryId) {
             $query->where('category_id', $this->currentCategoryId);
         }
-        
+
         if ($this->search) {
-            $query->where('name', 'like', '%' . $this->search . '%');
+            $query->where('name', 'like', '%'.$this->search.'%');
         }
 
         $this->products = $query->get();
@@ -63,7 +65,9 @@ class Terminal extends Component
     public function addToCart($productId)
     {
         $product = Product::find($productId);
-        if (!$product) return;
+        if (! $product) {
+            return;
+        }
 
         if (isset($this->cart[$productId])) {
             $this->cart[$productId]['quantity']++;
@@ -107,16 +111,18 @@ class Terminal extends Component
     {
         if (empty($this->cart)) {
             $this->dispatch('notify', message: 'Le panier est vide !', type: 'error');
+
             return;
         }
 
         // Ensure we have a valid user ID
         $userId = auth()->id();
-        if (!$userId) {
+        if (! $userId) {
             // Fallback: Get the first available server or admin
             $userId = \App\Models\User::whereIn('role', ['server', 'admin'])->value('id');
-            if (!$userId) {
+            if (! $userId) {
                 $this->dispatch('notify', message: 'Erreur: Aucun utilisateur trouvé pour attribuer la commande.', type: 'error');
+
                 return;
             }
         }
@@ -143,12 +149,12 @@ class Terminal extends Component
                 'status' => \App\Enums\OrderItemStatus::Sent,
                 'printed_kitchen' => false,
             ]);
-            
-             // Stock Logic
-             $product = Product::find($item['id']);
-             if($product && $product->has_stock) {
-                 $product->deductStock($item['quantity'], 'sale', 'POS #' . $order->local_id);
-             }
+
+            // Stock Logic
+            $product = Product::find($item['id']);
+            if ($product && $product->has_stock) {
+                $product->deductStock($item['quantity'], 'sale', 'POS #'.$order->local_id);
+            }
         }
 
         // DIRECT PRINTING (V2)
@@ -157,11 +163,11 @@ class Terminal extends Component
             $printerService->printOrder($order);
             $this->dispatch('notify', message: 'Commande enregistrée et imprimée !', type: 'success');
         } catch (\Exception $e) {
-            $this->dispatch('notify', message: 'Erreur impression: ' . $e->getMessage(), type: 'warning');
+            $this->dispatch('notify', message: 'Erreur impression: '.$e->getMessage(), type: 'warning');
         }
-        
+
         $this->reset(['cart', 'selectedTableId']);
-        
+
         $this->dispatch('order-created', orderId: $order->local_id);
     }
 

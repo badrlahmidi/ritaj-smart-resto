@@ -30,10 +30,11 @@ class PrinterService
 
                 case 'dummy':
                 default:
-                    return new DummyPrintConnector();
+                    return new DummyPrintConnector;
             }
         } catch (\Exception $e) {
-            Log::error("Printer Connection Failed ({$printerModel->name}): " . $e->getMessage());
+            Log::error("Printer Connection Failed ({$printerModel->name}): ".$e->getMessage());
+
             return null;
         }
     }

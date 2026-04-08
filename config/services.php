@@ -34,19 +34,24 @@ return [
             'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
-    
+
+    'cloud' => [
+        'url' => env('CLOUD_SYNC_URL', 'https://cloud.ritaj.local'),
+        'api_token' => env('CLOUD_SYNC_TOKEN'),
+    ],
+
     // Configuration Imprimante (Multi-driver)
     'printer' => [
         // Options: 'network', 'windows', 'file', 'dummy'
-        'driver' => env('PRINTER_DRIVER', 'file'), 
-        
+        'driver' => env('PRINTER_DRIVER', 'file'),
+
         'network' => [
             'ip' => env('PRINTER_KITCHEN_IP', '192.168.1.200'),
             'port' => env('PRINTER_KITCHEN_PORT', 9100),
         ],
-        
+
         'windows' => [
-            'name' => env('PRINTER_NAME', 'Microsoft Print to PDF'), 
+            'name' => env('PRINTER_NAME', 'Microsoft Print to PDF'),
         ],
     ],
 

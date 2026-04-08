@@ -11,7 +11,6 @@ use App\Models\OrderItem;
 use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Table;
-use App\Models\User;
 use App\Models\UserPin;
 use App\Services\Printing\PrintManager;
 use App\Settings\GeneralSettings;
@@ -26,61 +25,89 @@ use Livewire\Component;
 class ProPos extends Component
 {
     // View state: 'tables', 'ordering', 'payment', 'dashboard'
-    public $view = 'dashboard'; 
-    
+    public $view = 'dashboard';
+
     // Selection state
     public $selectedAreaId = null;
+
     public $selectedTableId = null;
+
     public $selectedCategoryId = null;
+
     public $search = '';
+
     public $orderType = 'dine_in';
-    
+
     // Cart state
-    public $cart = []; 
+    public $cart = [];
+
     public $currentOrderUuid = null;
-    
+
     // Advanced state
     public $discountAmount = 0;
-    public $discountType = 'fixed'; 
+
+    public $discountType = 'fixed';
+
     public $taxRate = 10;
+
     public $serviceCharge = 0;
+
     public $globalNotes = '';
-    
+
     // Delivery / Customer Info
     public $customerName = '';
+
     public $customerPhone = '';
+
     public $customerAddress = '';
-    
+
     // Modals
     public $showOptionsModal = false;
+
     public $showDiscountModal = false;
+
     public $showNoteModal = false;
+
     public $showPaymentModal = false;
+
     public $showDeliveryModal = false;
+
     public $showPinModal = false;
+
     public $showCancelModal = false;
+
     public $showSplitModal = false;
-    
+
     // Targeted for modals
     public $selectedProductForOptions = null;
+
     public $selectedOptions = [];
+
     public $editingLineIndex = null;
+
     public $lineNote = '';
+
     public $cancelTarget = null; // 'order' or 'item_index'
+
     public $cancelReason = '';
-    
+
     // Security
     public $pinCode = '';
+
     public $pendingAction = null; // Closure or method name to execute after PIN
-    
+
     // Payment state
     public $paymentMethod = 'cash';
+
     public $amountTendered = 0;
+
     public $payments = []; // List of partial payments for split
-    
+
     // Split Logic
     public $splitType = 'full'; // 'full', 'count', 'items'
+
     public $splitCount = 1;
+
     public $selectedItemsForSplit = []; // array of indexes
 
     public function mount()
@@ -91,48 +118,71 @@ class ProPos extends Component
     }
 
     #[Computed]
-    public function areas() { return Area::where('is_active', true)->get(); }
+    public function areas()
+    {
+        return Area::where('is_active', true)->get();
+    }
 
     #[Computed]
-    public function tables() {
-        if (!$this->selectedAreaId) return collect();
+    public function tables()
+    {
+        if (! $this->selectedAreaId) {
+            return collect();
+        }
+
         return Table::where('area_id', $this->selectedAreaId)->with('currentOrder')->get();
     }
 
     #[Computed]
-    public function categories() { return Category::where('is_active', true)->get(); }
+    public function categories()
+    {
+        return Category::where('is_active', true)->get();
+    }
 
     #[Computed]
-    public function products() {
+    public function products()
+    {
         $query = Product::where('is_available', true);
-        if ($this->selectedCategoryId) $query->where('category_id', $this->selectedCategoryId);
+        if ($this->selectedCategoryId) {
+            $query->where('category_id', $this->selectedCategoryId);
+        }
         if ($this->search) {
-            $query->where(function($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('id', $this->search);
+            $query->where(function ($q) {
+                $q->where('name', 'like', '%'.$this->search.'%')
+                    ->orWhere('id', $this->search);
             });
         }
+
         return $query->limit(40)->get();
     }
 
     // --- Core Workflow Actions ---
 
-    public function selectCategory($id) { $this->selectedCategoryId = $id; }
+    public function selectCategory($id)
+    {
+        $this->selectedCategoryId = $id;
+    }
 
-    public function selectArea($id) { $this->selectedAreaId = $id; $this->view = 'tables'; }
+    public function selectArea($id)
+    {
+        $this->selectedAreaId = $id;
+        $this->view = 'tables';
+    }
 
-    public function selectTable($id) {
+    public function selectTable($id)
+    {
         $this->resetCart();
-        
+
         $this->selectedTableId = $id;
         $table = Table::find($id);
         $this->orderType = \App\Enums\OrderType::DINE_IN->value;
-        
+
         if ($table->current_order_uuid) {
             $order = Order::find($table->current_order_uuid);
             if ($order && $order->isLockedByOthers()) {
-                $this->dispatch('notify', 'Cette commande est en cours de modification par ' . ($order->locker->name ?? 'un autre utilisateur'), 'error');
+                $this->dispatch('notify', 'Cette commande est en cours de modification par '.($order->locker->name ?? 'un autre utilisateur'), 'error');
                 $this->selectedTableId = null;
+
                 return;
             }
             // Acquire lock
@@ -142,29 +192,29 @@ class ProPos extends Component
         $this->view = 'ordering';
     }
 
-    public function setOrderType($type) {
+    public function setOrderType($type)
+    {
         $this->orderType = $type;
-        if ($type === 'dine_in') { 
-            $this->view = 'tables'; 
-        }
-        else if ($type === 'delivery') { 
+        if ($type === 'dine_in') {
+            $this->view = 'tables';
+        } elseif ($type === 'delivery') {
             $this->resetCart();
-            $this->showDeliveryModal = true; 
+            $this->showDeliveryModal = true;
             $this->view = 'ordering';
-        }
-        else if ($type === 'takeaway') {
+        } elseif ($type === 'takeaway') {
             $this->resetCart();
             $this->view = 'ordering';
         }
     }
 
-    public function unlockOrder() {
+    public function unlockOrder()
+    {
         if ($this->currentOrderUuid) {
             Order::where('uuid', $this->currentOrderUuid)
-                 ->where('locked_by', auth()->id())
-                 ->update(['locked_by' => null, 'locked_at' => null]);
+                ->where('locked_by', auth()->id())
+                ->update(['locked_by' => null, 'locked_at' => null]);
         }
-        
+
         if ($this->view === 'ordering' || $this->view === 'tables') {
             $this->view = 'dashboard';
         } else {
@@ -175,20 +225,26 @@ class ProPos extends Component
 
     // --- Order Entry ---
 
-    public function selectProduct($productId) {
+    public function selectProduct($productId)
+    {
         $product = Product::with('optionGroups.options')->find($productId);
-        if (!$product) return;
+        if (! $product) {
+            return;
+        }
         if ($product->optionGroups->isNotEmpty()) {
             $this->selectedProductForOptions = $product;
             $this->selectedOptions = [];
-            foreach ($product->optionGroups as $group) { $this->selectedOptions[$group->id] = $group->is_multiselect ? [] : null; }
+            foreach ($product->optionGroups as $group) {
+                $this->selectedOptions[$group->id] = $group->is_multiselect ? [] : null;
+            }
             $this->showOptionsModal = true;
         } else {
             $this->addToCart($product, []);
         }
     }
 
-    public function addToCart(Product $product, array $options, $extraPrice = 0) {
+    public function addToCart(Product $product, array $options, $extraPrice = 0)
+    {
         $basePrice = $product->getPriceByType(OrderType::from($this->orderType));
         $this->cart[] = [
             'product_id' => $product->id,
@@ -198,14 +254,17 @@ class ProPos extends Component
             'options' => $options,
             'status' => 'pending',
             'notes' => '',
-            'item_id' => null
+            'item_id' => null,
         ];
         $this->dispatch('play-sound', 'click');
     }
 
-    public function sendToKitchen() {
+    public function sendToKitchen()
+    {
         $pendingItems = collect($this->cart)->where('status', 'pending');
-        if ($pendingItems->isEmpty()) return;
+        if ($pendingItems->isEmpty()) {
+            return;
+        }
 
         $orderUuid = null;
 
@@ -241,10 +300,10 @@ class ProPos extends Component
             if ($this->selectedTableId) {
                 Table::where('id', $this->selectedTableId)->update(['status' => 'occupied', 'current_order_uuid' => $order->uuid]);
             }
-            
+
             // Release lock after sending
             $order->update(['locked_by' => null, 'locked_at' => null]);
-            
+
             $this->currentOrderUuid = $order->uuid;
             $this->loadOrder($order->uuid);
         });
@@ -260,7 +319,9 @@ class ProPos extends Component
 
     public function requestAddition()
     {
-        if (!$this->currentOrderUuid) return;
+        if (! $this->currentOrderUuid) {
+            return;
+        }
 
         $order = Order::find($this->currentOrderUuid);
         if ($order) {
@@ -271,25 +332,30 @@ class ProPos extends Component
 
     // --- Split & Payment ---
 
-    public function checkout() {
-        if (empty($this->cart)) return;
+    public function checkout()
+    {
+        if (empty($this->cart)) {
+            return;
+        }
         $this->view = 'payment';
         $this->amountTendered = $this->cartTotal;
         $this->payments = [];
         $this->splitType = 'full';
     }
 
-    public function processPayment() {
+    public function processPayment()
+    {
         if ($this->cartTotal > 0 && $this->amountTendered < $this->cartTotal && empty($this->payments)) {
             $this->dispatch('notify', 'Montant insuffisant', 'error');
+
             return;
         }
 
-        DB::transaction(function() {
+        DB::transaction(function () {
             $order = Order::where('uuid', $this->currentOrderUuid)->first();
-            
+
             // For Walk-ins
-            if (!$order) {
+            if (! $order) {
                 $order = Order::create([
                     'uuid' => (string) Str::uuid(),
                     'user_id' => auth()->id(),
@@ -340,7 +406,8 @@ class ProPos extends Component
 
     // --- Security & Permissions ---
 
-    public function requestCancelItem($index) {
+    public function requestCancelItem($index)
+    {
         $this->cancelTarget = $index;
         if ($this->cart[$index]['status'] === 'sent') {
             $this->pendingAction = 'cancelSentItem';
@@ -350,7 +417,8 @@ class ProPos extends Component
         }
     }
 
-    public function verifyPin() {
+    public function verifyPin()
+    {
         $rateLimitKey = sprintf('manager-pin:%s:%s', request()->ip(), session()->getId());
 
         if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
@@ -383,13 +451,14 @@ class ProPos extends Component
         }
     }
 
-    public function cancelSentItem() {
+    public function cancelSentItem()
+    {
         if ($this->cancelTarget !== null) {
             $item = $this->cart[$this->cancelTarget];
             if ($item['item_id']) {
                 OrderItem::find($item['item_id'])->update([
                     'status' => \App\Enums\OrderItemStatus::Cancelled,
-                    'cancel_reason' => 'Annulation Manager'
+                    'cancel_reason' => 'Annulation Manager',
                 ]);
             }
             unset($this->cart[$this->cancelTarget]);
@@ -400,26 +469,46 @@ class ProPos extends Component
 
     // --- Line Item Actions ---
 
-    public function editLineNote($index) { $this->editingLineIndex = $index; $this->lineNote = $this->cart[$index]['notes'] ?? ''; $this->showNoteModal = true; }
-    public function saveLineNote() { if ($this->editingLineIndex !== null) $this->cart[$this->editingLineIndex]['notes'] = $this->lineNote; $this->showNoteModal = false; }
-    
-    public function saveDeliveryInfo() {
+    public function editLineNote($index)
+    {
+        $this->editingLineIndex = $index;
+        $this->lineNote = $this->cart[$index]['notes'] ?? '';
+        $this->showNoteModal = true;
+    }
+
+    public function saveLineNote()
+    {
+        if ($this->editingLineIndex !== null) {
+            $this->cart[$this->editingLineIndex]['notes'] = $this->lineNote;
+        } $this->showNoteModal = false;
+    }
+
+    public function saveDeliveryInfo()
+    {
         $this->showDeliveryModal = false;
         $this->dispatch('notify', 'Informations livraison enregistrées', 'success');
     }
 
-    public function applyDiscount() {
+    public function applyDiscount()
+    {
         $this->showDiscountModal = true;
     }
 
-    public function confirmOptions() {
-        $options = []; $extraPrice = 0;
+    public function confirmOptions()
+    {
+        $options = [];
+        $extraPrice = 0;
         foreach ($this->selectedOptions as $groupId => $selection) {
-            if (!$selection) continue;
+            if (! $selection) {
+                continue;
+            }
             $group = OptionGroup::find($groupId);
             foreach ((is_array($selection) ? $selection : [$selection]) as $optId) {
                 $opt = \App\Models\Option::find($optId);
-                if ($opt) { $options[] = ['id' => $opt->id, 'name' => $group->name . ': ' . $opt->name, 'price' => $opt->price_modifier]; $extraPrice += $opt->price_modifier; }
+                if ($opt) {
+                    $options[] = ['id' => $opt->id, 'name' => $group->name.': '.$opt->name, 'price' => $opt->price_modifier];
+                    $extraPrice += $opt->price_modifier;
+                }
             }
         }
         $this->addToCart($this->selectedProductForOptions, $options, $extraPrice);
@@ -428,66 +517,116 @@ class ProPos extends Component
 
     // --- Helpers ---
 
-    private function loadOrder($uuid) {
+    private function loadOrder($uuid)
+    {
         $order = Order::with('items.product')->where('uuid', $uuid)->first();
-        if (!$order) return;
+        if (! $order) {
+            return;
+        }
         $this->currentOrderUuid = $order->uuid;
         $this->orderType = $order->type->value ?? $order->type;
         $this->selectedTableId = $order->table_id;
         $this->customerName = $order->customer_name;
         $this->customerPhone = $order->customer_phone;
         $this->customerAddress = $order->customer_address;
-        $this->discountAmount = (float)$order->discount_amount;
+        $this->discountAmount = (float) $order->discount_amount;
         $this->discountType = $order->discount_type ?? 'fixed';
         $this->globalNotes = $order->notes;
         $this->cart = [];
         foreach ($order->items as $item) {
-            if ($item->status === \App\Enums\OrderItemStatus::Cancelled) continue;
+            if ($item->status === \App\Enums\OrderItemStatus::Cancelled) {
+                continue;
+            }
             $this->cart[] = [
                 'product_id' => $item->product_id,
                 'name' => $item->product->name,
-                'price' => (float)$item->unit_price,
+                'price' => (float) $item->unit_price,
                 'qty' => $item->quantity,
                 'options' => $item->options ?? [],
                 'status' => 'sent',
                 'notes' => $item->notes,
-                'item_id' => $item->id
+                'item_id' => $item->id,
             ];
         }
     }
 
-    private function resetCart() {
-        $this->cart = []; $this->currentOrderUuid = null; $this->discountAmount = 0; $this->selectedTableId = null;
-        $this->customerName = ''; $this->customerPhone = ''; $this->customerAddress = ''; $this->globalNotes = '';
+    private function resetCart()
+    {
+        $this->cart = [];
+        $this->currentOrderUuid = null;
+        $this->discountAmount = 0;
+        $this->selectedTableId = null;
+        $this->customerName = '';
+        $this->customerPhone = '';
+        $this->customerAddress = '';
+        $this->globalNotes = '';
     }
 
-    public function getSubtotalProperty() { return collect($this->cart)->sum(fn($item) => $item['price'] * $item['qty']); }
-    public function getCalculatedDiscountProperty() { return $this->discountType === 'percent' ? ($this->subtotal * $this->discountAmount) / 100 : $this->discountAmount; }
-    public function getTaxAmountProperty() { return (($this->subtotal - $this->calculatedDiscount) * $this->taxRate) / 100; }
-    public function getCartTotalProperty() { return max(0, $this->subtotal - $this->calculatedDiscount + $this->taxAmount + $this->serviceCharge); }
+    public function getSubtotalProperty()
+    {
+        return collect($this->cart)->sum(fn ($item) => $item['price'] * $item['qty']);
+    }
 
-    public function syncTable() { if ($this->view === 'ordering' && $this->currentOrderUuid) { $this->loadOrder($this->currentOrderUuid); } }
+    public function getCalculatedDiscountProperty()
+    {
+        return $this->discountType === 'percent' ? ($this->subtotal * $this->discountAmount) / 100 : $this->discountAmount;
+    }
 
-    public function removeItem($index) { unset($this->cart[$index]); $this->cart = array_values($this->cart); }
-    public function updateQty($index, $delta) {
-        if (!isset($this->cart[$index]) || $this->cart[$index]['status'] === 'sent') return;
+    public function getTaxAmountProperty()
+    {
+        return (($this->subtotal - $this->calculatedDiscount) * $this->taxRate) / 100;
+    }
+
+    public function getCartTotalProperty()
+    {
+        return max(0, $this->subtotal - $this->calculatedDiscount + $this->taxAmount + $this->serviceCharge);
+    }
+
+    public function syncTable()
+    {
+        if ($this->view === 'ordering' && $this->currentOrderUuid) {
+            $this->loadOrder($this->currentOrderUuid);
+        }
+    }
+
+    public function removeItem($index)
+    {
+        unset($this->cart[$index]);
+        $this->cart = array_values($this->cart);
+    }
+
+    public function updateQty($index, $delta)
+    {
+        if (! isset($this->cart[$index]) || $this->cart[$index]['status'] === 'sent') {
+            return;
+        }
         $this->cart[$index]['qty'] += $delta;
-        if ($this->cart[$index]['qty'] <= 0) $this->removeItem($index);
+        if ($this->cart[$index]['qty'] <= 0) {
+            $this->removeItem($index);
+        }
     }
 
-    public function cancelOrder() {
+    public function cancelOrder()
+    {
         $this->pendingAction = 'doCancelOrder';
         $this->showPinModal = true;
     }
 
-    public function doCancelOrder() {
+    public function doCancelOrder()
+    {
         if ($this->currentOrderUuid) {
             Order::find($this->currentOrderUuid)->update(['status' => \App\Enums\OrderStatus::Cancelled]);
-            if ($this->selectedTableId) Table::find($this->selectedTableId)->update(['status' => 'available', 'current_order_uuid' => null]);
+            if ($this->selectedTableId) {
+                Table::find($this->selectedTableId)->update(['status' => 'available', 'current_order_uuid' => null]);
+            }
         }
-        $this->resetCart(); $this->view = 'tables';
+        $this->resetCart();
+        $this->view = 'tables';
         $this->dispatch('notify', 'Commande annulée', 'error');
     }
 
-    public function render() { return view('livewire.pos.pro-pos'); }
+    public function render()
+    {
+        return view('livewire.pos.pro-pos');
+    }
 }
