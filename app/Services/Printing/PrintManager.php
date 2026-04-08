@@ -146,9 +146,16 @@ class PrintManager
                 return true;
             }
 
-            $handle = @fsockopen($printer->path ?: $printer->ip_address, (int) ($printer->port ?? 9100), $errno, $error, 2);
+            set_error_handler(static function (): bool {
+                return true;
+            });
+
+            $handle = fsockopen($printer->path ?: $printer->ip_address, (int) ($printer->port ?? 9100), $errno, $error, 2);
+            restore_error_handler();
 
             if (! $handle) {
+                Log::warning("Printer connectivity check failed for {$printer->name}: [{$errno}] {$error}");
+
                 return false;
             }
 
@@ -156,6 +163,8 @@ class PrintManager
 
             return true;
         } catch (Throwable) {
+            restore_error_handler();
+
             return false;
         }
     }

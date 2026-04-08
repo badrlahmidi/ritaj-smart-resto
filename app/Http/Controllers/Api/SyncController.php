@@ -114,7 +114,7 @@ class SyncController extends Controller
             [
                 'category_id' => $category->id,
                 'price' => $item['price'],
-                'cost' => $item['price'],
+                'cost' => 0,
                 'is_available' => false,
                 'has_stock' => false,
                 'kitchen_station' => 'sync',

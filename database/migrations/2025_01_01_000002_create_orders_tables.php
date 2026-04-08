@@ -33,8 +33,8 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // MySQL-specific auto increment for local_id is intentionally avoided here.
-        // The Order model assigns local_id on creation so the schema remains portable to SQLite tests.
+        // local_id is assigned in the Order model booted() hook.
+        // This keeps the migration portable across MySQL and SQLite without database-specific DDL.
 
         // Create order items
         Schema::create('order_items', function (Blueprint $table) {
