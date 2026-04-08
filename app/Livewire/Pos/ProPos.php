@@ -419,7 +419,7 @@ class ProPos extends Component
 
     public function verifyPin()
     {
-        $rateLimitKey = sprintf('manager-pin:%s:%s', request()->ip(), session()->getId());
+        $rateLimitKey = sprintf('manager-pin:%s:%s', auth()->id() ?? 'guest', request()->ip());
 
         if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
             $seconds = RateLimiter::availableIn($rateLimitKey);
