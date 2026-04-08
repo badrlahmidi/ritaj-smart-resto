@@ -266,11 +266,9 @@ class ProPos extends Component
             return;
         }
 
-        $orderUuid = null;
-
-        DB::transaction(function () use ($pendingItems, &$orderUuid) {
-            $orderUuid = $this->currentOrderUuid ?? (string) Str::uuid();
-            $order = Order::updateOrCreate(['uuid' => $orderUuid], [
+        $orderUuid = DB::transaction(function () use ($pendingItems) {
+            $uuid = $this->currentOrderUuid ?? (string) Str::uuid();
+            $order = Order::updateOrCreate(['uuid' => $uuid], [
                 'table_id' => $this->selectedTableId,
                 'customer_name' => $this->customerName,
                 'customer_phone' => $this->customerPhone,
@@ -306,6 +304,8 @@ class ProPos extends Component
 
             $this->currentOrderUuid = $order->uuid;
             $this->loadOrder($order->uuid);
+
+            return $order->uuid;
         });
 
         if ($orderUuid) {

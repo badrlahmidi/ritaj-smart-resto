@@ -2,6 +2,7 @@
 
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
@@ -13,5 +14,5 @@ Schedule::command('sync:orders --limit=100')
     ->withoutOverlapping()
     ->runInBackground()
     ->onFailure(function () {
-        \Illuminate\Support\Facades\Log::warning('sync:orders scheduled run failed.');
+        Log::warning('sync:orders scheduled run failed.');
     });

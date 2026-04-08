@@ -125,7 +125,7 @@ class SyncController extends Controller
                 'price' => $item['price'],
                 'cost' => 0,
                 'is_available' => false,
-                'track_stock' => false,
+                'has_stock' => false,
                 'kitchen_station' => 'sync',
             ]
         );
