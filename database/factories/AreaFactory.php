@@ -15,7 +15,7 @@ class AreaFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => sprintf('Zone %s %s', strtoupper($this->faker->bothify('??')), $this->faker->unique()->numberBetween(1, 9999)),
+            'name' => 'Zone '.$this->faker->unique()->word(),
             'is_active' => true,
         ];
     }

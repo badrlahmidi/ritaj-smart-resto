@@ -106,7 +106,7 @@ class PrintManager
 
     public function process(PrintJob $printJob): void
     {
-        $payload = json_decode($printJob->content, true, flags: JSON_THROW_ON_ERROR);
+        $payload = json_decode($printJob->content, true, 512, JSON_THROW_ON_ERROR);
         $printerModel = $printJob->printer;
 
         if (! $printerModel || ! $printerModel->is_active) {
@@ -169,7 +169,7 @@ class PrintManager
             'attempts' => 0,
         ]);
 
-        if (config('queue.default') === 'sync' || app()->runningUnitTests()) {
+        if (config('queue.default') === 'sync') {
             ProcessPrintJob::dispatchSync($printJob->id);
         } else {
             ProcessPrintJob::dispatch($printJob->id);

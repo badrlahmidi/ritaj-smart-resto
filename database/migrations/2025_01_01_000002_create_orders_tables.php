@@ -34,7 +34,7 @@ return new class extends Migration
         });
 
         // MySQL-specific auto increment for local_id is intentionally avoided here.
-        // The model assigns local_id on creation so the schema remains portable to SQLite tests.
+        // The Order model assigns local_id on creation so the schema remains portable to SQLite tests.
 
         // Create order items
         Schema::create('order_items', function (Blueprint $table) {

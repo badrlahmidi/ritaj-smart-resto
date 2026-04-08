@@ -37,7 +37,7 @@ self.addEventListener('fetch', (event) => {
 
                     return response;
                 })
-                .catch(async () => (await caches.match(request)) || caches.match(OFFLINE_FALLBACK)),
+                .catch(() => caches.match(request).then((cached) => cached || caches.match(OFFLINE_FALLBACK))),
         );
 
         return;
