@@ -1,4 +1,5 @@
 <div class="h-screen bg-gray-900 text-white font-sans flex flex-col overflow-hidden"
+     wire:poll.20s
      x-data="{ notification: { show: false, message: '', type: 'success' } }"
      x-on:notify.window="notification.show = true; notification.message = $event.detail[0]; notification.type = $event.detail[1] || 'success'; setTimeout(() => notification.show = false, 3000)">
 
@@ -45,12 +46,19 @@
                     <div class="flex-1 overflow-y-auto p-3 space-y-3">
                         @foreach($order->items as $item)
                             <div class="flex gap-3 group cursor-pointer" wire:click="markItemReady({{ $item->id }})">
-                                <div class="w-8 h-8 flex items-center justify-center bg-gray-200 text-gray-900 font-black rounded text-lg group-hover:bg-green-200 transition">
+                                <div class="w-8 h-8 flex items-center justify-center font-black rounded text-lg transition
+                                    {{ $item->status->value === 'prepared' ? 'bg-green-300 text-green-900 ring-2 ring-green-500' : 'bg-gray-200 text-gray-900 group-hover:bg-green-200' }}">
                                     {{ $item->quantity }}
                                 </div>
                                 <div class="flex-1">
-                                    <h3 class="font-bold text-gray-800 text-lg leading-tight group-hover:line-through decoration-2 decoration-green-500">{{ $item->product->name }}</h3>
+                                    <h3 class="font-bold text-gray-800 text-lg leading-tight
+                                        {{ $item->status->value === 'prepared' ? 'line-through decoration-2 decoration-green-500 text-gray-400' : 'group-hover:line-through decoration-2 decoration-green-500' }}">
+                                        {{ $item->product->name }}
+                                    </h3>
                                     
+                                    @if($item->status->value === 'prepared')
+                                        <span class="text-xs font-bold text-green-600 uppercase tracking-wide">✓ Prêt</span>
+                                    @endif
                                     <!-- Options -->
                                     @if(!empty($item->options))
                                         <div class="text-sm text-red-600 font-bold mt-1 bg-red-100 inline-block px-2 rounded">

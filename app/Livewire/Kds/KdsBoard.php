@@ -21,67 +21,107 @@ class KdsBoard extends Component
     #[Computed]
     public function pendingOrders()
     {
-        // Get orders that have items with 'sent' status
-        $query = Order::whereHas('items', function ($q) {
-            $q->where('status', \App\Enums\OrderItemStatus::Sent->value);
+        $activeItemStatuses = [
+            \App\Enums\OrderItemStatus::Sent->value,
+            \App\Enums\OrderItemStatus::Prepared->value,
+        ];
+
+        return Order::whereHas('items', function ($q) use ($activeItemStatuses) {
+            $q->whereIn('status', $activeItemStatuses);
             if ($this->stationFilter) {
-                $q->whereHas('product', fn($sq) => $sq->where('kitchen_station', $this->stationFilter));
+                $q->whereHas('product', fn ($sq) => $sq->where('kitchen_station', $this->stationFilter));
             }
         })
-        ->whereIn('status', [\App\Enums\OrderStatus::SentToKitchen->value, 'in_progress']) // Support both legacy and new status
-        ->with(['items' => function($q) {
-            $q->where('status', \App\Enums\OrderItemStatus::Sent->value);
-            if ($this->stationFilter) {
-                $q->whereHas('product', fn($sq) => $sq->where('kitchen_station', $this->stationFilter));
-            }
-        }, 'table', 'server'])
-        ->orderBy('updated_at', 'asc') // Oldest first
-        ->get();
-
-        return $query;
+            ->whereIn('status', [
+                \App\Enums\OrderStatus::SentToKitchen->value,
+                \App\Enums\OrderStatus::InService->value,
+            ])
+            ->with(['items' => function ($q) use ($activeItemStatuses) {
+                $q->whereIn('status', $activeItemStatuses);
+                if ($this->stationFilter) {
+                    $q->whereHas('product', fn ($sq) => $sq->where('kitchen_station', $this->stationFilter));
+                }
+            }, 'table', 'server'])
+            ->orderBy('updated_at', 'asc')
+            ->get();
     }
 
     public function markItemReady($itemId)
     {
-        OrderItem::where('id', $itemId)->update(['status' => \App\Enums\OrderItemStatus::Served->value]);
-        // Check order completion logic
+        $item = OrderItem::find($itemId);
+        if (! $item) {
+            return;
+        }
+
+        // Cycle: Sent → Prepared → Served
+        $next = match ($item->status) {
+            \App\Enums\OrderItemStatus::Sent => \App\Enums\OrderItemStatus::Prepared,
+            \App\Enums\OrderItemStatus::Prepared => \App\Enums\OrderItemStatus::Served,
+            default => null,
+        };
+
+        if ($next) {
+            $item->update(['status' => $next->value]);
+        }
+
+        $this->checkOrderCompletion($item->order_uuid);
     }
 
     public function markOrderReady($orderUuid)
     {
         $order = Order::where('uuid', $orderUuid)->first();
-        if (!$order) return;
-
-        // Mark all filtered items as served
-        foreach ($order->items as $item) {
-             // Only mark items relevant to this station or all if no station
-             if ($item->status === \App\Enums\OrderItemStatus::Sent) {
-                if ($this->stationFilter && $item->product->kitchen_station !== $this->stationFilter) {
-                    continue; 
-                }
-                $item->update(['status' => \App\Enums\OrderItemStatus::Served]);
-             }
+        if (! $order) {
+            return;
         }
-        
+
+        // Mark all filtered items as Prepared → Served
+        foreach ($order->items as $item) {
+            if (! in_array($item->status, [\App\Enums\OrderItemStatus::Sent, \App\Enums\OrderItemStatus::Prepared])) {
+                continue;
+            }
+
+            if ($this->stationFilter && $item->product?->kitchen_station !== $this->stationFilter) {
+                continue;
+            }
+
+            $item->update(['status' => \App\Enums\OrderItemStatus::Served->value]);
+        }
+
+        $order->refresh();
+
         // If all items in order are served, update order status
-        if ($order->items()->where('status', '!=', \App\Enums\OrderItemStatus::Served)->count() === 0) {
+        if ($order->items()->whereNotIn('status', [\App\Enums\OrderItemStatus::Served->value, \App\Enums\OrderItemStatus::Cancelled->value])->count() === 0) {
             $order->update(['status' => \App\Enums\OrderStatus::InService]);
         }
 
         $this->dispatch('notify', 'Commande terminée !', 'success');
     }
 
-    protected function checkOrderCompletion($itemId)
+    protected function checkOrderCompletion(string $orderUuid): void
     {
-        // Logic to check if whole order is done could go here
+        $order = Order::where('uuid', $orderUuid)->first();
+        if (! $order) {
+            return;
+        }
+
+        $hasActiveItems = $order->items()
+            ->whereNotIn('status', [
+                \App\Enums\OrderItemStatus::Served->value,
+                \App\Enums\OrderItemStatus::Cancelled->value,
+            ])
+            ->exists();
+
+        if (! $hasActiveItems) {
+            $order->update(['status' => \App\Enums\OrderStatus::InService]);
+        }
     }
 
     // Listen for events from Reverb (WebSockets)
     public function getListeners()
     {
         return [
-            "echo:kitchen,NewOrderForKitchen" => '$refresh',
-            "echo:kitchen,OrderVoided" => '$refresh',
+            'echo:kitchen,NewOrderForKitchen' => '$refresh',
+            'echo:kitchen,OrderVoided' => '$refresh',
         ];
     }
 

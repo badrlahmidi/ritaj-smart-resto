@@ -27,21 +27,30 @@ class SyncController extends Controller
 
             $orderData = $payload['order'];
 
-            $order = Order::updateOrCreate(
-                ['uuid' => $payload['uuid']],
-                [
+            // Build create-only fields separately so local_id is never overwritten
+            $existing = Order::where('uuid', $payload['uuid'])->first();
+
+            $sharedData = [
+                'user_id' => $server->id,
+                'table_id' => $table?->id,
+                'status' => $orderData['status'],
+                'payment_status' => $orderData['payment_status'] ?? 'paid',
+                'payment_method' => $orderData['payment_method'] ?? null,
+                'type' => $orderData['type'] ?? 'takeaway',
+                'total_amount' => $orderData['total_amount'],
+                'sync_status' => true,
+                'synced_at' => now(),
+            ];
+
+            if ($existing) {
+                $existing->update($sharedData);
+                $order = $existing;
+            } else {
+                $order = Order::create(array_merge($sharedData, [
+                    'uuid' => $payload['uuid'],
                     'local_id' => $payload['local_id'] ?? $orderData['local_id'] ?? null,
-                    'user_id' => $server->id,
-                    'table_id' => $table?->id,
-                    'status' => $orderData['status'],
-                    'payment_status' => $orderData['payment_status'] ?? 'paid',
-                    'payment_method' => $orderData['payment_method'] ?? null,
-                    'type' => $orderData['type'] ?? 'takeaway',
-                    'total_amount' => $orderData['total_amount'],
-                    'sync_status' => true,
-                    'synced_at' => now(),
-                ]
-            );
+                ]));
+            }
 
             $order->items()->delete();
 
@@ -116,7 +125,7 @@ class SyncController extends Controller
                 'price' => $item['price'],
                 'cost' => 0,
                 'is_available' => false,
-                'has_stock' => false,
+                'track_stock' => false,
                 'kitchen_station' => 'sync',
             ]
         );

@@ -16,6 +16,7 @@ class OrderItem extends Model
         'options',
         'notes',
         'status',
+        'cancel_reason',
         'printed_kitchen',
         'printed_at',
     ];
