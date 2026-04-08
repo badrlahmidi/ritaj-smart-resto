@@ -53,11 +53,12 @@ class KdsBoard extends Component
             return;
         }
 
-        // Cycle: Sent → Prepared → Served
+        // Two-step kitchen workflow: Sent → Prepared (cook marks ready) → Served (waiter picks up)
+        // Clicking an item badge advances it one step at a time.
         $next = match ($item->status) {
             \App\Enums\OrderItemStatus::Sent => \App\Enums\OrderItemStatus::Prepared,
             \App\Enums\OrderItemStatus::Prepared => \App\Enums\OrderItemStatus::Served,
-            default => null,
+            default => null, // Already served, cancelled, or in an unexpected state – no transition
         };
 
         if ($next) {
