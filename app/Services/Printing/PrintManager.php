@@ -113,7 +113,9 @@ class PrintManager
             throw new \RuntimeException('Printer unavailable for print job.');
         }
 
-        $order = Order::with(['items.product', 'table', 'server', 'user'])->findOrFail($payload['order_uuid']);
+        $order = Order::with(['items.product', 'table', 'server', 'user'])
+            ->where('uuid', $payload['order_uuid'])
+            ->firstOrFail();
 
         $connector = $this->getConnector($printerModel);
         $printer = new EscposPrinter($connector);
