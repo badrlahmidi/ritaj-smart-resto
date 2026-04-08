@@ -12,9 +12,11 @@ use App\Models\Payment;
 use App\Models\Product;
 use App\Models\Table;
 use App\Models\User;
+use App\Models\UserPin;
+use App\Services\Printing\PrintManager;
 use App\Settings\GeneralSettings;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -205,7 +207,9 @@ class ProPos extends Component
         $pendingItems = collect($this->cart)->where('status', 'pending');
         if ($pendingItems->isEmpty()) return;
 
-        DB::transaction(function () use ($pendingItems) {
+        $orderUuid = null;
+
+        DB::transaction(function () use ($pendingItems, &$orderUuid) {
             $orderUuid = $this->currentOrderUuid ?? (string) Str::uuid();
             $order = Order::updateOrCreate(['uuid' => $orderUuid], [
                 'table_id' => $this->selectedTableId,
@@ -244,6 +248,12 @@ class ProPos extends Component
             $this->currentOrderUuid = $order->uuid;
             $this->loadOrder($order->uuid);
         });
+
+        if ($orderUuid) {
+            app(PrintManager::class)->queueKitchenTicket(
+                Order::with(['items.product', 'table', 'server', 'user'])->findOrFail($orderUuid)
+            );
+        }
 
         $this->dispatch('notify', 'Envoyé en cuisine !', 'success');
     }
@@ -311,12 +321,16 @@ class ProPos extends Component
                 'order_uuid' => $order->uuid,
                 'amount' => $this->cartTotal,
                 'payment_method' => $this->paymentMethod,
+                'amount_tendered' => $this->amountTendered,
+                'change_due' => max(0, $this->amountTendered - $this->cartTotal),
                 'user_id' => auth()->id(),
             ]);
 
             if ($order->table_id) {
                 Table::where('id', $order->table_id)->update(['status' => 'available', 'current_order_uuid' => null]);
             }
+
+            app(PrintManager::class)->queueReceipt($order->fresh(['items.product', 'table', 'server', 'user']));
         });
 
         $this->resetCart();
@@ -337,12 +351,28 @@ class ProPos extends Component
     }
 
     public function verifyPin() {
-        // Find any user with admin/manager role that matches this PIN
-        $manager = User::whereIn('role', ['admin', 'manager'])->with('pin')->get()->first(function($user) {
-            return $user->checkPin($this->pinCode);
-        });
+        $rateLimitKey = sprintf('manager-pin:%s:%s', request()->ip(), session()->getId());
 
-        if ($manager) {
+        if (RateLimiter::tooManyAttempts($rateLimitKey, 3)) {
+            $seconds = RateLimiter::availableIn($rateLimitKey);
+            $this->dispatch('notify', "Trop de tentatives. Réessayez dans {$seconds}s.", 'error');
+
+            return;
+        }
+
+        RateLimiter::hit($rateLimitKey, 30);
+
+        $managerPin = UserPin::query()
+            ->select('user_pins.*')
+            ->join('users', 'users.id', '=', 'user_pins.user_id')
+            ->whereIn('users.role', ['admin', 'manager'])
+            ->where('users.is_active', true)
+            ->with('user')
+            ->cursor()
+            ->first(fn (UserPin $pin) => $pin->user && $pin->user->checkPin($this->pinCode));
+
+        if ($managerPin?->user) {
+            RateLimiter::clear($rateLimitKey);
             $action = $this->pendingAction;
             $this->$action();
             $this->showPinModal = false;

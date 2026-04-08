@@ -27,6 +27,8 @@ class PrinterResource extends Resource
                     ->options([
                         'network' => 'Réseau (IP)',
                         'usb' => 'USB / Direct',
+                        'windows' => 'Windows / Partage',
+                        'dummy' => 'Dummy / Test',
                     ])
                     ->required()
                     ->default('network'),
@@ -38,7 +40,25 @@ class PrinterResource extends Resource
                     ->numeric()
                     ->default(9100)
                     ->visible(fn (Forms\Get $get) => $get('type') === 'network'),
-                
+                Forms\Components\Select::make('paper_width')
+                    ->options([
+                        58 => '58 mm',
+                        80 => '80 mm',
+                    ])
+                    ->default(80)
+                    ->required(),
+                Forms\Components\TextInput::make('max_retries')
+                    ->numeric()
+                    ->default(3)
+                    ->minValue(1)
+                    ->maxValue(10),
+                Forms\Components\Toggle::make('auto_cut')
+                    ->label('Coupe automatique')
+                    ->default(true),
+                Forms\Components\Toggle::make('cash_drawer')
+                    ->label('Ouvre-tiroir')
+                    ->default(false),
+
                 // Fix: CheckboxList returns array, needs JSON casting in model
                 Forms\Components\CheckboxList::make('station_tags')
                     ->label('Postes de cuisine associés')
@@ -69,10 +89,14 @@ class PrinterResource extends Resource
                         default => 'gray',
                     }),
                 Tables\Columns\TextColumn::make('path')->label('Cible'),
+                Tables\Columns\TextColumn::make('paper_width')->suffix(' mm'),
                 Tables\Columns\TextColumn::make('station_tags')
                     ->badge()
                     ->separator(',')
                     ->limitList(3),
+                Tables\Columns\IconColumn::make('cash_drawer')
+                    ->label('Tiroir')
+                    ->boolean(),
                 Tables\Columns\IconColumn::make('is_active')
                     ->boolean(),
             ])

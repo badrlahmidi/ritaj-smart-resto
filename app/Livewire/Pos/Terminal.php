@@ -153,7 +153,7 @@ class Terminal extends Component
 
         // DIRECT PRINTING (V2)
         try {
-            $printerService = new ReceiptPrinterService();
+            $printerService = app(ReceiptPrinterService::class);
             $printerService->printOrder($order);
             $this->dispatch('notify', message: 'Commande enregistrée et imprimée !', type: 'success');
         } catch (\Exception $e) {

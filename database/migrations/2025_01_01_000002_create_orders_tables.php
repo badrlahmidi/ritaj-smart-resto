@@ -34,8 +34,8 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Enable Auto Increment for local_id
-        DB::statement('ALTER TABLE orders MODIFY local_id BIGINT UNSIGNED AUTO_INCREMENT');
+        // MySQL-specific auto increment for local_id is intentionally avoided here.
+        // The model assigns local_id on creation so the schema remains portable to SQLite tests.
 
         // Create order items
         Schema::create('order_items', function (Blueprint $table) {

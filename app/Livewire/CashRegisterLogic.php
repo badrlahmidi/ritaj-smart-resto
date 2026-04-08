@@ -3,7 +3,7 @@
 namespace App\Livewire;
 
 use App\Models\Order;
-use App\Services\PrinterService;
+use App\Services\Printing\ReceiptPrinterService;
 use Livewire\Component;
 
 class CashRegisterLogic extends Component
@@ -70,7 +70,7 @@ class CashRegisterLogic extends Component
         }
 
         // 3. Impression Ticket Caisse
-        app(PrinterService::class)->printBill($order);
+        app(ReceiptPrinterService::class)->printOrder($order);
 
         // Reset
         $this->selectedOrderUuid = null;

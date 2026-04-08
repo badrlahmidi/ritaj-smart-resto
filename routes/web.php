@@ -1,22 +1,19 @@
 <?php
 
-use App\Livewire\CashRegisterLogic;
-// use App\Livewire\Pos\PosLoginPage;
-use App\Livewire\Pos\PosPage;
-use App\Livewire\Pos\PosOrderPage;
-use App\Livewire\Pos\PosPaymentPage;
 use App\Livewire\Kds\KdsBoard;
-use Illuminate\Support\Facades\Route;
+use App\Livewire\Pos\PosOrderPage;
+use App\Livewire\Pos\PosPage;
+use App\Livewire\Pos\PosPaymentPage;
+use App\Livewire\Pos\Terminal;
 use App\Models\Order;
 use App\Settings\GeneralSettings;
-
-use App\Livewire\Pos\Terminal;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/pos', Terminal::class)->name('pos.terminal')->middleware('auth');
+Route::get('/pos/terminal', Terminal::class)->name('pos.terminal')->middleware('auth');
 
 Route::get('/admin/orders/{order}/print', function (Order $order) {
     return view('receipts.thermal', [
@@ -25,8 +22,6 @@ Route::get('/admin/orders/{order}/print', function (Order $order) {
     ]);
 })->name('order.print')->middleware('auth');
 
-// POS Routes
-// Route::get('/pos/login', PosLoginPage::class)->name('pos.login');
 Route::get('/pos', PosPage::class)->middleware('auth')->name('pos');
 Route::get('/pos/order/{table}', PosOrderPage::class)->middleware('auth')->name('pos.order');
 Route::get('/pos/payment/{order}', PosPaymentPage::class)->middleware('auth')->name('pos.payment');

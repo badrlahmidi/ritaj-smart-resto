@@ -2,12 +2,16 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Order extends Model
 {
+    use HasFactory;
+
     // Configuration UUID
     protected $primaryKey = 'uuid';
     protected $keyType = 'string';
@@ -15,6 +19,7 @@ class Order extends Model
 
     protected $fillable = [
         'uuid',
+        'local_id',
         'user_id',
         'table_id',
         'customer_name',
@@ -32,6 +37,8 @@ class Order extends Model
         'notes',
         'cancel_reason',
         'sync_status',
+        'synced_at',
+        'is_stock_deducted',
         'locked_by',
         'locked_at',
     ];
@@ -40,8 +47,23 @@ class Order extends Model
         'status' => \App\Enums\OrderStatus::class,
         'type' => \App\Enums\OrderType::class,
         'locked_at' => 'datetime',
+        'synced_at' => 'datetime',
         'sync_status' => 'boolean',
+        'is_stock_deducted' => 'boolean',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Order $order): void {
+            if (blank($order->uuid)) {
+                $order->uuid = (string) Str::uuid();
+            }
+
+            if (blank($order->local_id)) {
+                $order->local_id = ((int) static::query()->max('local_id')) + 1;
+            }
+        });
+    }
 
     public function locker(): BelongsTo
     {

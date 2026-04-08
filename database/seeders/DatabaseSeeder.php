@@ -6,6 +6,7 @@ use App\Models\Area;
 use App\Models\Category;
 use App\Models\Option;
 use App\Models\OptionGroup;
+use App\Models\Printer;
 use App\Models\Product;
 use App\Models\Table;
 use App\Models\User;
@@ -52,6 +53,14 @@ class DatabaseSeeder extends Seeder
             'role' => 'kitchen',
             'is_active' => true,
         ]);
+
+        $manager = User::firstOrCreate(['email' => 'manager@ritaj.com'], [
+            'name' => 'Manager Salle',
+            'password' => Hash::make('password'),
+            'role' => 'manager',
+            'is_active' => true,
+        ]);
+        UserPin::updateOrCreate(['user_id' => $manager->id], ['pin_code' => Hash::make('4321')]);
 
         // 3. Zones & Tables
         $mainArea = Area::create(['name' => 'Salle Principale']);
@@ -111,7 +120,7 @@ class DatabaseSeeder extends Seeder
             'category_id' => $catDrinks->id,
             'price' => 15,
             'cost' => 5,
-            'track_stock' => true,
+            'has_stock' => true,
             'stock_quantity' => 100,
             'kitchen_station' => 'bar',
             'image_url' => null, // Placeholder handled by UI
@@ -122,7 +131,7 @@ class DatabaseSeeder extends Seeder
             'category_id' => $catDrinks->id,
             'price' => 10,
             'cost' => 3,
-            'track_stock' => true,
+            'has_stock' => true,
             'stock_quantity' => 50,
             'kitchen_station' => 'bar',
         ]);
@@ -167,7 +176,52 @@ class DatabaseSeeder extends Seeder
             'cost' => 10,
             'kitchen_station' => 'dessert',
             'stock_quantity' => 10, // Stock tracké (portions prêtes)
-            'track_stock' => true,
+            'has_stock' => true,
         ]);
+
+        Printer::updateOrCreate(
+            ['name' => 'Caisse Principale'],
+            [
+                'type' => 'dummy',
+                'path' => 'php://stdout',
+                'port' => 9100,
+                'station_tags' => ['cashier'],
+                'paper_width' => 80,
+                'auto_cut' => true,
+                'cash_drawer' => true,
+                'max_retries' => 3,
+                'is_active' => true,
+            ]
+        );
+
+        Printer::updateOrCreate(
+            ['name' => 'Cuisine Chaude'],
+            [
+                'type' => 'dummy',
+                'path' => 'php://stdout',
+                'port' => 9100,
+                'station_tags' => ['kitchen', 'grill'],
+                'paper_width' => 80,
+                'auto_cut' => true,
+                'cash_drawer' => false,
+                'max_retries' => 3,
+                'is_active' => true,
+            ]
+        );
+
+        Printer::updateOrCreate(
+            ['name' => 'Bar'],
+            [
+                'type' => 'dummy',
+                'path' => 'php://stdout',
+                'port' => 9100,
+                'station_tags' => ['bar', 'dessert'],
+                'paper_width' => 80,
+                'auto_cut' => true,
+                'cash_drawer' => false,
+                'max_retries' => 3,
+                'is_active' => true,
+            ]
+        );
     }
 }

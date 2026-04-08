@@ -1,0 +1,124 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Enums\OrderItemStatus;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\SyncOrderRequest;
+use App\Models\Category;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\Table;
+use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+
+class SyncController extends Controller
+{
+    public function orders(SyncOrderRequest $request): JsonResponse
+    {
+        $payload = $request->validated();
+
+        $order = DB::transaction(function () use ($payload): Order {
+            $server = $this->resolveServer($payload['server'] ?? null);
+            $table = $this->resolveTable($payload['table'] ?? null);
+
+            $orderData = $payload['order'];
+
+            $order = Order::updateOrCreate(
+                ['uuid' => $payload['uuid']],
+                [
+                    'local_id' => $payload['local_id'] ?? $orderData['local_id'] ?? null,
+                    'user_id' => $server->id,
+                    'table_id' => $table?->id,
+                    'status' => $orderData['status'],
+                    'payment_status' => $orderData['payment_status'] ?? 'paid',
+                    'payment_method' => $orderData['payment_method'] ?? null,
+                    'type' => $orderData['type'] ?? 'takeaway',
+                    'total_amount' => $orderData['total_amount'],
+                    'sync_status' => true,
+                    'synced_at' => now(),
+                ]
+            );
+
+            $order->items()->delete();
+
+            foreach ($payload['items'] ?? [] as $item) {
+                $product = $this->resolveProduct($item);
+
+                $order->items()->create([
+                    'product_id' => $product->id,
+                    'quantity' => $item['quantity'],
+                    'unit_price' => $item['price'],
+                    'total_price' => $item['subtotal'] ?? ($item['price'] * $item['quantity']),
+                    'notes' => $item['notes'] ?? null,
+                    'status' => OrderItemStatus::Served,
+                    'printed_kitchen' => true,
+                    'printed_at' => now(),
+                ]);
+            }
+
+            return $order->load('items.product', 'table', 'server');
+        });
+
+        return response()->json([
+            'status' => 'synced',
+            'order_uuid' => $order->uuid,
+            'items_count' => $order->items->count(),
+        ]);
+    }
+
+    private function resolveServer(?array $server): User
+    {
+        $email = $server['email'] ?? 'sync-bot@ritaj.local';
+
+        return User::firstOrCreate(
+            ['email' => $email],
+            [
+                'name' => $server['name'] ?? 'Sync Bot',
+                'password' => Hash::make(Str::random(40)),
+                'role' => 'server',
+                'is_active' => true,
+            ]
+        );
+    }
+
+    private function resolveTable(?array $table): ?Table
+    {
+        if (empty($table['name']) && empty($table['qr_code_hash'])) {
+            return null;
+        }
+
+        $lookup = ! empty($table['qr_code_hash'])
+            ? ['qr_code_hash' => $table['qr_code_hash']]
+            : ['name' => $table['name']];
+
+        return Table::updateOrCreate($lookup, [
+            'name' => $table['name'] ?? 'Table synchronisée',
+        ]);
+    }
+
+    private function resolveProduct(array $item): Product
+    {
+        $category = Category::firstOrCreate(
+            ['name' => 'Menu Synchronisé'],
+            ['is_active' => false]
+        );
+
+        $name = $item['product_name'] ?? 'Produit synchronisé';
+
+        return Product::updateOrCreate(
+            ['name' => $name],
+            [
+                'category_id' => $category->id,
+                'price' => $item['price'],
+                'cost' => $item['price'],
+                'is_available' => false,
+                'has_stock' => false,
+                'kitchen_station' => 'sync',
+            ]
+        );
+    }
+}

@@ -1,0 +1,19 @@
+{
+    "name": "Ritaj Smart Resto",
+    "short_name": "Ritaj POS",
+    "description": "POS restaurant offline-first pour caisse, serveurs et cuisine.",
+    "display": "standalone",
+    "start_url": "/pos",
+    "scope": "/",
+    "background_color": "#111827",
+    "theme_color": "#111827",
+    "orientation": "portrait",
+    "icons": [
+        {
+            "src": "/icons/icon.svg",
+            "sizes": "any",
+            "type": "image/svg+xml",
+            "purpose": "any maskable"
+        }
+    ]
+}

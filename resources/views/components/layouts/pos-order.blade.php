@@ -3,6 +3,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#111827">
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
+    <link rel="icon" href="{{ asset('icons/icon.svg') }}" type="image/svg+xml">
     <title>Prise de Commande - Ritaj Resto</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
@@ -12,6 +15,7 @@
     </style>
 </head>
 <body class="bg-gray-50 h-screen w-screen overflow-hidden antialiased">
+    <x-offline-banner />
     {{ $slot }}
     @livewireScripts
 </body>
