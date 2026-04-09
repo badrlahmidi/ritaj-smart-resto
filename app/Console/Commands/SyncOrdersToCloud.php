@@ -21,10 +21,9 @@ class SyncOrdersToCloud extends Command
         $force = $this->option('force');
         
         $query = Order::with(['items.product', 'table', 'server'])
-            ->where('sync_status', false)
             ->where('status', 'paid');
-        
-        if (!$force) {
+
+        if (! $force) {
             $query->where('sync_status', false);
         }
         

@@ -12,7 +12,7 @@
         
         <div class="flex gap-4 text-sm font-bold text-gray-400">
             <span>En attente : <span class="text-white">{{ $this->pendingOrders->count() }}</span></span>
-            <span>Retard (>20m) : <span class="text-red-500">0</span></span>
+            <span>Retard (>20m) : <span class="{{ $this->lateOrdersCount > 0 ? 'text-red-500 animate-pulse' : 'text-gray-500' }}">{{ $this->lateOrdersCount }}</span></span>
         </div>
 
         <div class="text-xs text-gray-500">{{ now()->format('H:i') }}</div>
@@ -24,7 +24,7 @@
             @forelse($this->pendingOrders as $order)
                 <!-- TICKET CARD -->
                 <div class="w-80 flex-shrink-0 bg-gray-100 rounded-xl flex flex-col shadow-2xl overflow-hidden border-t-8 
-                    {{ $order->updated_at->diffInMinutes(now()) > 20 ? 'border-red-500 bg-red-50' : ($order->updated_at->diffInMinutes(now()) > 10 ? 'border-orange-500' : 'border-green-500') }}
+                    {{ $order->created_at->diffInMinutes(now()) > 20 ? 'border-red-500 bg-red-50' : ($order->created_at->diffInMinutes(now()) > 10 ? 'border-orange-500' : 'border-green-500') }}
                     animate-in slide-in-from-right-10 duration-500">
                     
                     <!-- Ticket Header -->
@@ -35,9 +35,9 @@
                         </div>
                         <div class="text-right">
                             <span class="text-lg font-bold text-gray-800">#{{ $order->local_id }}</span>
-                            <div class="text-xs font-bold {{ $order->updated_at->diffInMinutes(now()) > 20 ? 'text-red-600 animate-pulse' : 'text-gray-400' }}">
-                                {{ $order->updated_at->format('H:i') }}
-                                ({{ $order->updated_at->diffInMinutes(now()) }}m)
+                            <div class="text-xs font-bold {{ $order->created_at->diffInMinutes(now()) > 20 ? 'text-red-600 animate-pulse' : 'text-gray-400' }}">
+                                {{ $order->created_at->format('H:i') }}
+                                ({{ $order->created_at->diffInMinutes(now()) }}m)
                             </div>
                         </div>
                     </div>
@@ -45,7 +45,10 @@
                     <!-- Ticket Body (Items) -->
                     <div class="flex-1 overflow-y-auto p-3 space-y-3">
                         @foreach($order->items as $item)
-                            <div class="flex gap-3 group cursor-pointer" wire:click="markItemReady({{ $item->id }})">
+                            <div class="flex gap-3 group cursor-pointer" 
+                                 wire:click="markItemReady({{ $item->id }})"
+                                 role="button"
+                                 aria-label="Marquer {{ $item->product->name }} comme prêt">
                                 <div class="w-8 h-8 flex items-center justify-center font-black rounded text-lg transition
                                     {{ $item->status->value === 'prepared' ? 'bg-green-300 text-green-900 ring-2 ring-green-500' : 'bg-gray-200 text-gray-900 group-hover:bg-green-200' }}">
                                     {{ $item->quantity }}

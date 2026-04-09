@@ -28,15 +28,13 @@ class OrderResource extends Resource
         return $form
             ->schema([
                 Forms\Components\Select::make('table_id')
-                    ->relationship('table', 'name')
-                    ->required(),
+                    ->relationship('table', 'name'),
                 Forms\Components\Select::make('status')
-                    ->options([
-                        'pending' => 'Pending',
-                        'sent_to_kitchen' => 'In Kitchen',
-                        'ready' => 'Ready',
-                        'paid' => 'Paid',
-                    ])
+                    ->options(
+                        collect(\App\Enums\OrderStatus::cases())
+                            ->mapWithKeys(fn ($case) => [$case->value => $case->getLabel()])
+                            ->toArray()
+                    )
                     ->required(),
                 Forms\Components\TextInput::make('total_amount')
                     ->numeric()

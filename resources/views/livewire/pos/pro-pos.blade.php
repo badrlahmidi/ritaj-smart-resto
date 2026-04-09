@@ -46,7 +46,7 @@
             <header class="hidden lg:flex h-24 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 items-center px-8 justify-between z-30 shadow-sm">
                 <!-- Back Button -->
                 <div x-show="view !== 'dashboard'" class="mr-4">
-                    <button wire:click="unlockOrder" class="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-500 hover:text-amber-500 transition-all">
+                    <button wire:click="unlockOrder" aria-label="Retour" class="p-3 bg-gray-100 dark:bg-gray-800 rounded-2xl text-gray-500 hover:text-amber-500 transition-all">
                         <x-heroicon-o-arrow-left class="w-6 h-6" />
                     </button>
                 </div>
@@ -95,7 +95,7 @@
             <header class="lg:hidden h-16 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex items-center px-4 justify-between z-30 shadow-sm">
                 <div class="flex items-center gap-3">
                     @if($view !== 'dashboard')
-                        <button wire:click="unlockOrder" class="p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-gray-500">
+                        <button wire:click="unlockOrder" aria-label="Retour" class="p-2 bg-gray-50 dark:bg-gray-800 rounded-xl text-gray-500">
                             <x-heroicon-o-arrow-left class="w-5 h-5" />
                         </button>
                         <h1 class="text-lg font-black dark:text-white">
@@ -114,7 +114,7 @@
                 </div>
 
                 <div class="flex items-center gap-2">
-                    <button @click="mobileCartOpen = true" class="relative p-2 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-xl">
+                    <button @click="mobileCartOpen = true" aria-label="Ouvrir le panier" class="relative p-2 bg-amber-50 dark:bg-amber-900/30 text-amber-600 rounded-xl">
                         <x-heroicon-o-shopping-cart class="w-6 h-6" />
                         @if(count($cart) > 0)
                             <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white dark:border-gray-900">
@@ -464,7 +464,7 @@
                         <button wire:click="{{ $orderType === 'delivery' ? 'saveDeliveryInfo' : '$set(\'showDeliveryModal\', true)' }}" class="p-3 lg:p-4 bg-white dark:bg-gray-800 rounded-xl lg:rounded-3xl border border-gray-200 dark:border-gray-700 hover:border-emerald-400 transition-all shadow-sm">
                             <x-heroicon-o-user-plus class="w-5 h-5 lg:w-6 lg:h-6 text-emerald-500 mx-auto" />
                         </button>
-                        <button wire:click="cancelOrder" class="p-3 lg:p-4 bg-white dark:bg-gray-800 rounded-xl lg:rounded-3xl border border-gray-200 dark:border-gray-700 hover:border-red-400 transition-all shadow-sm">
+                        <button wire:click="cancelOrder" aria-label="Annuler la commande" class="p-3 lg:p-4 bg-white dark:bg-gray-800 rounded-xl lg:rounded-3xl border border-gray-200 dark:border-gray-700 hover:border-red-400 transition-all shadow-sm">
                             <x-heroicon-o-x-circle class="w-5 h-5 lg:w-6 lg:h-6 text-red-500 mx-auto" />
                         </button>
                     </div>

@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use App\Models\Order;
+use App\Settings\GeneralSettings;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -29,8 +30,8 @@ class FinancialReport extends Page implements HasForms, HasTable
     public function mount(): void
     {
         $this->form->fill([
-            'date_from' => now()->startOfMonth(),
-            'date_to' => now()->endOfMonth(),
+            'date_from' => now()->startOfMonth()->toDateString(),
+            'date_to' => now()->endOfMonth()->toDateString(),
         ]);
     }
 
@@ -47,15 +48,17 @@ class FinancialReport extends Page implements HasForms, HasTable
 
     public function table(Table $table): Table
     {
+        $taxRate = $this->getTaxRate();
+
         return $table
             ->query(function () {
-                $dateFrom = $this->data['date_from'] ?? now()->startOfMonth();
-                $dateTo = $this->data['date_to'] ?? now()->endOfMonth();
+                $dateFrom = $this->data['date_from'] ?? now()->startOfMonth()->toDateString();
+                $dateTo = $this->data['date_to'] ?? now()->endOfMonth()->toDateString();
 
                 return Order::query()
                     ->selectRaw('DATE(created_at) as date, SUM(total_amount) as total_revenue, COUNT(*) as orders_count')
                     ->where('status', 'paid')
-                    ->whereBetween('created_at', [$dateFrom, $dateTo])
+                    ->whereBetween('created_at', [$dateFrom, $dateTo.' 23:59:59'])
                     ->groupBy('date')
                     ->orderByDesc('date');
             })
@@ -63,14 +66,23 @@ class FinancialReport extends Page implements HasForms, HasTable
                 TextColumn::make('date')->date('d/m/Y')->label('Date'),
                 TextColumn::make('orders_count')->label('Commandes'),
                 TextColumn::make('total_revenue')->money('mad')->label('Chiffre d\'Affaires')->weight('bold'),
-                TextColumn::make('tva_est')->label('TVA Estimée (10%)')
-                    ->state(fn ($record) => number_format($record->total_revenue * 0.10, 2) . ' DH'),
+                TextColumn::make('tva_est')
+                    ->label('TVA Estimée ('.$taxRate.'%)')
+                    ->state(fn ($record) => number_format($record->total_revenue * ($taxRate / 100), 2).' DH'),
             ]);
     }
 
-    // Action pour mettre à jour le tableau quand on change les dates
-    public function updateReport()
+    public function updateReport(): void
     {
-        // Livewire refresh handled auto via reactive form or explicit button
+        $this->resetTable();
+    }
+
+    protected function getTaxRate(): float
+    {
+        try {
+            return app(GeneralSettings::class)->default_tax_rate ?? 10.0;
+        } catch (\Exception) {
+            return 10.0;
+        }
     }
 }

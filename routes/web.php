@@ -13,19 +13,24 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/pos/terminal', Terminal::class)->name('pos.terminal')->middleware('auth');
+// POS routes — accessible to all authenticated staff (admin, manager, server)
+Route::middleware(['auth', 'role:admin,manager,server'])->group(function () {
+    Route::get('/pos', PosPage::class)->name('pos');
+    Route::get('/pos/order/{table}', PosOrderPage::class)->name('pos.order');
+    Route::get('/pos/payment/{order}', PosPaymentPage::class)->name('pos.payment');
+    Route::get('/pos/terminal', Terminal::class)->name('pos.terminal');
+});
 
+// KDS routes — accessible to kitchen staff (and managers/admins)
+Route::middleware(['auth', 'role:admin,manager,kitchen'])->group(function () {
+    Route::get('/kds', KdsBoard::class)->name('kds');
+    Route::get('/kds/{station}', KdsBoard::class)->name('kds.station');
+});
+
+// Receipt printing — any authenticated user
 Route::get('/admin/orders/{order}/print', function (Order $order) {
     return view('receipts.thermal', [
         'order' => $order->load('items.product', 'table', 'server'),
         'settings' => app(GeneralSettings::class),
     ]);
 })->name('order.print')->middleware('auth');
-
-Route::get('/pos', PosPage::class)->middleware('auth')->name('pos');
-Route::get('/pos/order/{table}', PosOrderPage::class)->middleware('auth')->name('pos.order');
-Route::get('/pos/payment/{order}', PosPaymentPage::class)->middleware('auth')->name('pos.payment');
-
-// KDS Routes
-Route::get('/kds', KdsBoard::class)->middleware('auth')->name('kds'); // Master KDS
-Route::get('/kds/{station}', KdsBoard::class)->middleware('auth')->name('kds.station'); // Station specific

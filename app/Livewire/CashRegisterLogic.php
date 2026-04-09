@@ -3,7 +3,9 @@
 namespace App\Livewire;
 
 use App\Models\Order;
+use App\Models\Payment;
 use App\Services\Printing\ReceiptPrinterService;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class CashRegisterLogic extends Component
@@ -67,30 +69,39 @@ class CashRegisterLogic extends Component
 
         $order = $this->selectedOrder;
 
-        // Mise à jour de la commande
-        // L'observer se déclenchera ici car le statut passe à 'paid'
-        // Si la commande n'a jamais été envoyée en cuisine (Vente directe), le stock sera déduit maintenant.
-        // Si elle a déjà été envoyée en cuisine, le flag is_stock_deducted bloquera la double déduction.
-        $order->update([
-            'status' => 'paid',
-            'payment_method' => $this->paymentMethod,
-        ]);
+        DB::transaction(function () use ($order) {
+            // 1. Update order status — the observer handles stock deduction
+            $order->update([
+                'status' => \App\Enums\OrderStatus::Paid->value,
+                'payment_status' => 'paid',
+                'payment_method' => $this->paymentMethod,
+            ]);
 
-        // 2. Libérer la table
-        if ($order->table) {
-            $order->table->update(['current_order_uuid' => null]);
-        }
+            // 2. Create a Payment record so financial reports are accurate
+            Payment::create([
+                'order_uuid' => $order->uuid,
+                'amount' => $order->total_amount,
+                'payment_method' => $this->paymentMethod,
+                'amount_tendered' => $this->paymentMethod === 'cash' ? $this->amountTendered : null,
+                'change_due' => $this->paymentMethod === 'cash' ? max(0, $this->change) : null,
+                'user_id' => auth()->id(),
+            ]);
 
-        // 3. Impression Ticket Caisse
-        app(ReceiptPrinterService::class)->printOrder($order);
+            // 3. Free the table
+            if ($order->table) {
+                $order->table->update(['current_order_uuid' => null, 'status' => 'available']);
+            }
+        });
 
-        // Reset
+        // 4. Print receipt (outside transaction — failure is non-fatal)
+        app(ReceiptPrinterService::class)->printOrder($order->fresh());
+
+        // Reset state
         $this->selectedOrderUuid = null;
         $this->amountTendered = 0;
         $this->change = 0;
 
-        session()->flash('success', 'Paiement enregistré et ticket imprimé !');
-        $this->dispatch('notify', 'Paiement OK');
+        $this->dispatch('notify', 'Paiement enregistré et ticket imprimé !', 'success');
     }
 
     public function render()

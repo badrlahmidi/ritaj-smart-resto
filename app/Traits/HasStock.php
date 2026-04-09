@@ -21,12 +21,11 @@ trait HasStock
     public function deductStock(float $quantity, string $reason, string $reference = null, ?float $cost = null)
     {
         // 1. Update actual stock column
-        // Assuming column is 'stock_quantity' for both
         $this->decrement('stock_quantity', $quantity);
 
-        // 2. Create Traceability Log
+        // 2. Create Traceability Log — use $reason as movement type (sale, waste, adjustment, etc.)
         $this->stockMovements()->create([
-            'type' => 'sale', // or $reason
+            'type' => $reason,
             'quantity' => -$quantity, // Negative for deduction
             'cost' => $cost ?? $this->getCostPrice(),
             'reference' => $reference,

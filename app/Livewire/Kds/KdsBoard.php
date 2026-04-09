@@ -42,8 +42,16 @@ class KdsBoard extends Component
                     $q->whereHas('product', fn ($sq) => $sq->where('kitchen_station', $this->stationFilter));
                 }
             }, 'table', 'server'])
-            ->orderBy('updated_at', 'asc')
+            ->orderBy('created_at', 'asc')
             ->get();
+    }
+
+    #[Computed]
+    public function lateOrdersCount(): int
+    {
+        return $this->pendingOrders
+            ->filter(fn ($order) => $order->created_at->diffInMinutes(now()) > 20)
+            ->count();
     }
 
     public function markItemReady($itemId)

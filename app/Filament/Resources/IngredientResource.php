@@ -103,7 +103,7 @@ class IngredientResource extends Resource
     public static function getRelations(): array
     {
         return [
-            //
+            \App\Filament\Resources\IngredientResource\RelationManagers\StockMovementsRelationManager::class,
         ];
     }
 

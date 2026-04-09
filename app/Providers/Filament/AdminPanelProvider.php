@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Pages\CashRegister;
+use App\Filament\Pages\DailyClosure;
 use App\Filament\Pages\FinancialReport;
 use App\Filament\Pages\KitchenDisplay;
 use App\Filament\Pages\ManageSettings;
@@ -109,6 +110,7 @@ class AdminPanelProvider extends PanelProvider
                         NavigationGroup::make('Pilotage & Finance')->items([
                             ...Pages\Dashboard::getNavigationItems(),
                             ...FinancialReport::getNavigationItems(),
+                            ...DailyClosure::getNavigationItems(),
                         ]),
 
                         NavigationGroup::make('Infrastructure & Sécurité')->items([

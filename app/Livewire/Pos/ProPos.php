@@ -276,14 +276,12 @@ class ProPos extends Component
                 'user_id' => auth()->id(),
                 'status' => \App\Enums\OrderStatus::SentToKitchen->value,
                 'type' => $this->orderType,
-                'total_amount' => $this->cartTotal,
                 'discount_amount' => $this->discountAmount,
                 'discount_type' => $this->discountType,
-                'tax_amount' => $this->taxAmount,
                 'notes' => $this->globalNotes,
             ]);
 
-            foreach ($pendingItems as $index => $item) {
+            foreach ($pendingItems as $item) {
                 $order->items()->create([
                     'product_id' => $item['product_id'],
                     'quantity' => $item['qty'],
@@ -295,12 +293,28 @@ class ProPos extends Component
                 ]);
             }
 
+            // Recompute totals from persisted non-cancelled items to avoid
+            // stale-cart over-billing when items were cancelled between sends.
+            $itemsSubtotal = $order->items()
+                ->whereNotIn('status', [\App\Enums\OrderItemStatus::Cancelled->value])
+                ->sum(DB::raw('unit_price * quantity'));
+
+            $discount = $this->discountType === 'percent'
+                ? ($itemsSubtotal * $this->discountAmount) / 100
+                : (float) $this->discountAmount;
+
+            $tax = (($itemsSubtotal - $discount) * $this->taxRate) / 100;
+
+            $order->update([
+                'total_amount' => max(0, $itemsSubtotal - $discount + $tax + $this->serviceCharge),
+                'tax_amount' => $tax,
+                'locked_by' => null,
+                'locked_at' => null,
+            ]);
+
             if ($this->selectedTableId) {
                 Table::where('id', $this->selectedTableId)->update(['status' => 'occupied', 'current_order_uuid' => $order->uuid]);
             }
-
-            // Release lock after sending
-            $order->update(['locked_by' => null, 'locked_at' => null]);
 
             $this->currentOrderUuid = $order->uuid;
             $this->loadOrder($order->uuid);
