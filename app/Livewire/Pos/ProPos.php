@@ -295,9 +295,11 @@ class ProPos extends Component
 
             // Recompute totals from persisted non-cancelled items to avoid
             // stale-cart over-billing when items were cancelled between sends.
-            $itemsSubtotal = $order->items()
-                ->whereNotIn('status', [\App\Enums\OrderItemStatus::Cancelled->value])
-                ->sum(DB::raw('unit_price * quantity'));
+            // Refresh the relation so the newly created items are included.
+            $order->load('items');
+            $itemsSubtotal = $order->items
+                ->where('status', '!=', \App\Enums\OrderItemStatus::Cancelled->value)
+                ->sum(fn ($i) => $i->unit_price * $i->quantity);
 
             $discount = $this->discountType === 'percent'
                 ? ($itemsSubtotal * $this->discountAmount) / 100

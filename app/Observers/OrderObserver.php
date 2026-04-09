@@ -31,8 +31,9 @@ class OrderObserver
 
         // 2. Handle Cancellation AFTER preparation (Waste Management)
         // If order was already deducted (cooked) and is now cancelled -> Mark movements as 'waste'
-        // wasChanged() is used (not isDirty()) because in the 'updated' event the model is already
-        // persisted, so isDirty() always returns false.
+        // Eloquent's `updated` event fires after the record has been persisted, so `isDirty()`
+        // always returns false at this point. `wasChanged()` correctly inspects the diff between
+        // the previous and current DB values, making it the right tool here.
         if (
             $order->is_stock_deducted &&
             $order->status === OrderStatus::Cancelled &&

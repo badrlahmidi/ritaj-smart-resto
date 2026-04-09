@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use App\Models\Order;
 use App\Settings\GeneralSettings;
+use Carbon\Carbon;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -52,13 +53,13 @@ class FinancialReport extends Page implements HasForms, HasTable
 
         return $table
             ->query(function () {
-                $dateFrom = $this->data['date_from'] ?? now()->startOfMonth()->toDateString();
-                $dateTo = $this->data['date_to'] ?? now()->endOfMonth()->toDateString();
+                $dateFrom = Carbon::parse($this->data['date_from'] ?? now()->startOfMonth())->startOfDay();
+                $dateTo   = Carbon::parse($this->data['date_to'] ?? now()->endOfMonth())->endOfDay();
 
                 return Order::query()
                     ->selectRaw('DATE(created_at) as date, SUM(total_amount) as total_revenue, COUNT(*) as orders_count')
                     ->where('status', 'paid')
-                    ->whereBetween('created_at', [$dateFrom, $dateTo.' 23:59:59'])
+                    ->whereBetween('created_at', [$dateFrom, $dateTo])
                     ->groupBy('date')
                     ->orderByDesc('date');
             })
