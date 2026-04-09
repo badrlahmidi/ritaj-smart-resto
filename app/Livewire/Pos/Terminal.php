@@ -157,6 +157,10 @@ class Terminal extends Component
             }
         }
 
+        // Mark stock as already deducted so that OrderObserver does not deduct it again
+        // when the status transitions (observer checks is_stock_deducted before acting).
+        $order->updateQuietly(['is_stock_deducted' => true]);
+
         // DIRECT PRINTING (V2)
         try {
             $printerService = app(ReceiptPrinterService::class);

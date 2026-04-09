@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class Order extends Model
@@ -62,7 +63,13 @@ class Order extends Model
             }
 
             if (blank($order->local_id)) {
-                $order->local_id = ((int) static::query()->max('local_id')) + 1;
+                // Use a pessimistic lock to prevent duplicate local_id values under
+                // concurrent inserts. Works reliably when this event fires inside an
+                // existing DB::transaction() (ProPos, Terminal). For standalone creates
+                // the inner transaction wraps the read-modify step atomically.
+                $order->local_id = DB::transaction(function () {
+                    return ((int) DB::table('orders')->lockForUpdate()->max('local_id') ?? 0) + 1;
+                });
             }
         });
     }

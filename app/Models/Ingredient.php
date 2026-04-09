@@ -13,9 +13,10 @@ class Ingredient extends Model
     protected $fillable = [
         'name',
         'unit', // kg, l, piece
+        'unit_id',
         'stock_quantity',
         'cost_per_unit', // PUMP
-        'min_stock_alert',
+        'alert_threshold',
         'supplier_id',
     ];
 
@@ -33,7 +34,7 @@ class Ingredient extends Model
             $this->cost_per_unit = ($oldValue + $newValue) / $totalQty;
         } else {
             // If stock was negative or zero and we just add, cost is the new cost
-             $this->cost_per_unit = $newUnitCost;
+            $this->cost_per_unit = $newUnitCost;
         }
 
         $this->stock_quantity += $newQty;

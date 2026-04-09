@@ -27,7 +27,7 @@ class ProductFactory extends Factory
             'is_available' => true,
             'has_stock' => false,
             'stock_quantity' => $this->faker->numberBetween(0, 200),
-            'min_stock_alert' => $this->faker->numberBetween(1, 10),
+            'alert_threshold' => $this->faker->numberBetween(1, 10),
             'image_url' => null,
             'kitchen_station' => $this->faker->randomElement(['kitchen', 'bar', 'pizza']),
             'is_combo' => false,

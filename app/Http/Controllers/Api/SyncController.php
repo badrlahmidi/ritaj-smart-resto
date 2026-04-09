@@ -12,8 +12,6 @@ use App\Models\Table;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class SyncController extends Controller
 {
@@ -81,17 +79,23 @@ class SyncController extends Controller
 
     private function resolveServer(?array $server): User
     {
-        $email = $server['email'] ?? 'sync-bot@ritaj.local';
+        // Only look up existing, active users — never auto-create accounts via the sync API
+        // as that would allow any authenticated sync client to create arbitrary user records.
+        if (! empty($server['email'])) {
+            $existing = User::where('email', $server['email'])
+                ->where('is_active', true)
+                ->first();
 
-        return User::firstOrCreate(
-            ['email' => $email],
-            [
-                'name' => $server['name'] ?? 'Sync Bot',
-                'password' => Hash::make(Str::random(40)),
-                'role' => 'server',
-                'is_active' => true,
-            ]
-        );
+            if ($existing) {
+                return $existing;
+            }
+        }
+
+        // Fall back to the authenticated API user that made this request.
+        /** @var User $apiUser */
+        $apiUser = auth()->user();
+
+        return $apiUser;
     }
 
     private function resolveTable(?array $table): ?Table

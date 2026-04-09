@@ -12,7 +12,7 @@ class StatsOverview extends BaseWidget
     // However, typically in Filament 3 widgets, it can be protected static ?string $pollingInterval = '30s';
     // Let's match the parent signature or use the method if property fails.
     // Checking Filament docs, usually it is: protected static ?string $pollingInterval = '15s';
-    
+
     protected static ?string $pollingInterval = '30s';
 
     protected function getStats(): array
@@ -23,13 +23,13 @@ class StatsOverview extends BaseWidget
             ->sum('total_amount');
 
         // Commandes en attente (Cuisine)
-        $pendingOrders = Order::where('status', 'sent_to_kitchen')->count();
+        $pendingOrders = Order::where('status', \App\Enums\OrderStatus::SentToKitchen->value)->count();
 
         // Total commandes aujourd'hui
         $totalOrders = Order::whereDate('created_at', today())->count();
 
         return [
-            Stat::make('Chiffre d\'affaires (Jour)', number_format($dailyRevenue, 2) . ' DH')
+            Stat::make('Chiffre d\'affaires (Jour)', number_format($dailyRevenue, 2).' DH')
                 ->description('Total encaissé aujourd\'hui')
                 ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success')

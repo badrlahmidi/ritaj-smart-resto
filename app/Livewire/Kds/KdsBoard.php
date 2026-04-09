@@ -117,13 +117,12 @@ class KdsBoard extends Component
         }
     }
 
-    // Listen for events from Reverb (WebSockets)
+    // Listen for events from Reverb (WebSockets).
+    // Requires laravel/reverb to be installed and configured.
+    // Without Reverb the board auto-refreshes via wire:poll.20s on the view.
     public function getListeners()
     {
-        return [
-            'echo:kitchen,NewOrderForKitchen' => '$refresh',
-            'echo:kitchen,OrderVoided' => '$refresh',
-        ];
+        return [];
     }
 
     public function render()

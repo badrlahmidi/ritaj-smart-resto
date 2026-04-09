@@ -21,7 +21,11 @@ class CashRegisterLogic extends Component
     public function getActiveOrdersProperty()
     {
         return Order::query()
-            ->whereIn('status', ['sent_to_kitchen', 'ready', 'pending'])
+            ->whereIn('status', [
+                \App\Enums\OrderStatus::SentToKitchen->value,
+                \App\Enums\OrderStatus::InService->value,
+                \App\Enums\OrderStatus::PaymentPending->value,
+            ])
             ->with(['table', 'server'])
             ->orderByDesc('updated_at')
             ->get();
